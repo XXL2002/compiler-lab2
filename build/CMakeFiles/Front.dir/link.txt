@@ -1,0 +1,2 @@
+C:\PROGRA~1\MINGW-~1\X86_64~1.0-W\mingw64\bin\ar.exe qc E:\Code\Compile\lab2\bin\libFront.a CMakeFiles/Front.dir/src/front/abstract_syntax_tree.cpp.obj CMakeFiles/Front.dir/src/front/lexical.cpp.obj CMakeFiles/Front.dir/src/front/semantic.cpp.obj CMakeFiles/Front.dir/src/front/syntax.cpp.obj CMakeFiles/Front.dir/src/front/token.cpp.obj
+C:\PROGRA~1\MINGW-~1\X86_64~1.0-W\mingw64\bin\ranlib.exe E:\Code\Compile\lab2\bin\libFront.a
