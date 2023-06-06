@@ -1,6 +1,7 @@
 #include "front/semantic.h"
 
 #include <cassert>
+#include <iostream>
 // #include "semantic.h"
 
 using ir::Function;
@@ -926,6 +927,7 @@ void frontend::Analyzer::analysisExp(Exp *root, vector<ir::Instruction *> &buffe
     */
     ANALYSIS(addexp, AddExp, 0);
     COPY_EXP_NODE(addexp, root);
+    std::cout << "Exp.v: " << root->v << "\nExp.t:" << toString(root->t) <<"\nExp.is_computable:"<<root->is_computable<< "---------------------" <<std::endl;
 }
 
 void frontend::Analyzer::analysisCond(Cond *root, vector<ir::Instruction *> &buffer)
@@ -960,6 +962,7 @@ void frontend::Analyzer::analysisLVal(LVal *root, vector<ir::Instruction *> &buf
         root->t = ident.type;
         root->v = ident.name;
         // root->v = (ident.type == Type::IntLiteral || ident.type == Type::FloatLiteral) ? ident.name : term->token.value;
+        std::cout<<"Lval------------\n---v:"<< root->v << "\nprimaryExp.t:" << toString(root->t) <<"\nprimaryExp.is_computable:"<<root->is_computable<< std::endl;
     }
     else if (root->children.size() == 4)
     {
@@ -1104,6 +1107,7 @@ void frontend::Analyzer::analysisNumber(Number *root, vector<ir::Instruction *> 
     }
     root->v = value;
     root->t = (tp == TokenType::INTLTR) ? Type::IntLiteral : Type::FloatLiteral;
+    std::cout << "number.v: " << root->v << "\nnumber.t:" << toString(root->t) << std::endl;
 }
 
 void frontend::Analyzer::analysisPrimaryExp(PrimaryExp *root, vector<ir::Instruction *> &buffer)
@@ -1125,6 +1129,7 @@ void frontend::Analyzer::analysisPrimaryExp(PrimaryExp *root, vector<ir::Instruc
         // PrimaryExp -> LVal
         ANALYSIS(lval, LVal, 0);
         COPY_EXP_NODE(lval, root);
+        std::cout << "primaryExp.v: " << root->v << "\nprimaryExp.t:" << toString(root->t) <<"\nprimaryExp.is_computable:"<<root->is_computable<< std::endl;
     }
     else
     {
@@ -1132,6 +1137,7 @@ void frontend::Analyzer::analysisPrimaryExp(PrimaryExp *root, vector<ir::Instruc
         assert(root->children[0]->type == NodeType::NUMBER);
         ANALYSIS(number, Number, 0);
         COPY_EXP_NODE(number, root);
+        std::cout << "primaryExp.v: " << root->v << "\nprimaryExp.t:" << toString(root->t) <<"\nprimaryExp.is_computable:"<<root->is_computable<< std::endl;
     }
 }
 
@@ -1148,6 +1154,7 @@ void frontend::Analyzer::analysisUnaryExp(UnaryExp *root, vector<ir::Instruction
         // UnaryExp -> PrimaryExp
         ANALYSIS(primaryexp, PrimaryExp, 0);
         COPY_EXP_NODE(primaryexp, root);
+        std::cout << "unaryExp.v: " << root->v << "\nunaryExp.t:" << toString(root->t) <<"\nunaryExp.is_computable:"<<root->is_computable<< std::endl;
     }
     else if (root->children[0]->type == NodeType::TERMINAL)
     {
@@ -1625,6 +1632,7 @@ void frontend::Analyzer::analysisMulExp(MulExp *root, vector<ir::Instruction *> 
             }
         }
     }
+    std::cout << "mulExp.v: " << root->v << "\nmulExp.t:" << toString(root->t) <<"\nmulExp.is_computable:"<<root->is_computable<< std::endl;
 }
 
 void frontend::Analyzer::analysisAddExp(AddExp *root, vector<ir::Instruction *> &buffer)
@@ -1880,6 +1888,7 @@ void frontend::Analyzer::analysisAddExp(AddExp *root, vector<ir::Instruction *> 
             }
         }
     }
+    std::cout << "addExp.v: " << root->v << "\naddExp.t:" << toString(root->t) <<"\naddExp.is_computable:"<<root->is_computable<< std::endl;
 }
 
 void frontend::Analyzer::analysisRelExp(RelExp *root, vector<ir::Instruction *> &buffer)
