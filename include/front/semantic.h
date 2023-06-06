@@ -109,6 +109,8 @@ namespace frontend
         int tmp_cnt;
         vector<ir::Instruction *> g_init_inst;
         SymbolTable symbol_table;
+        // 添加当前所在函数的标记，方便return时做类型检查
+        ir::Function cur_func;
 
         /**
          * @brief constructor
@@ -131,7 +133,30 @@ namespace frontend
         void analysisBType(BType *, vector<ir::Instruction *> &);
         void analysisConstDef(ConstDef *, vector<ir::Instruction *> &);
         void analysisConstInitVal(ConstInitVal *, vector<ir::Instruction *> &);
-        void analysisFuncType(FuncType *, vector<ir::Instruction *> &);
+        void analysisVarDecl(VarDecl *, vector<ir::Instruction *> &);
+        void analysisVarDef(VarDef *, vector<ir::Instruction *> &);
+        void analysisInitVal(InitVal *, vector<ir::Instruction *> &);
+        // void analysisFuncType(FuncType *, vector<ir::Instruction *> &);
+        void analysisFuncFParam(FuncFParam *, ir::Function &);
+        void analysisFuncFParams(FuncFParams *, ir::Function &);
+        void analysisBlock(Block *, vector<ir::Instruction *> &);
+        void analysisBlockItem(BlockItem *, vector<ir::Instruction *> &);
+        void analysisStmt(Stmt *, vector<ir::Instruction *> &);
+        void analysisExp(Exp *, vector<ir::Instruction *> &);
+        void analysisCond(Cond *, vector<ir::Instruction *> &);
+        void analysisLVal(LVal *, vector<ir::Instruction *> &);
+        void analysisNumber(Number *, vector<ir::Instruction *> &);
+        void analysisPrimaryExp(PrimaryExp *, vector<ir::Instruction *> &);
+        void analysisUnaryExp(UnaryExp *, vector<ir::Instruction *> &);
+        // void analysisUnaryOp(UnaryOp *, vector<ir::Instruction *> &);
+        void analysisFuncRParams(FuncRParams *, vector<ir::Instruction *> &, ir::CallInst &);
+        void analysisMulExp(MulExp *, vector<ir::Instruction *> &);
+        void analysisAddExp(AddExp *, vector<ir::Instruction *> &);
+        void analysisRelExp(RelExp *, vector<ir::Instruction *> &);
+        void analysisEqExp(EqExp *, vector<ir::Instruction *> &);
+        void analysisLAndExp(LAndExp *, vector<ir::Instruction *> &);
+        void analysisLOrExp(LOrExp *, vector<ir::Instruction *> &);
+        void analysisConstExp(ConstExp *, vector<ir::Instruction *> &);
     };
 
 } // namespace frontend
