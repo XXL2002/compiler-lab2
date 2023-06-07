@@ -776,6 +776,12 @@ void frontend::Analyzer::analysisFuncFParam(FuncFParam *root, ir::Function &func
         // FuncFParam -> BType Ident '[' ']' { '[' Exp ']' }
         // 设置为指针类型
         parma_type = (parma_type == Type::Int) ? Type::IntPtr : Type::FloatPtr;
+        dim.push_back(0);
+        if (root->children.size()>4){
+            ANALYSIS(exp, Exp, 5);
+            assert(exp->is_computable);
+            dim.push_back(std::stoi(exp->v));
+        }
     }
     Operand op = {new_name, parma_type};
     symbol_table.scope_stack.back().table.insert({param_name, {op, dim}});
@@ -869,7 +875,11 @@ void frontend::Analyzer::analysisStmt(Stmt *root, vector<ir::Instruction *> &buf
             // }else{
             //     buffer.push_back(new Instruction(src, Operand(), des, Operator::mov));
             // }
-            buffer.push_back(new Instruction(src, Operand(), des, Operator::def));
+            if (lval->is_arr_element){
+                buffer.push_back(new Instruction({lval->arr_name,Type::IntPtr}, lval->i, src, Operator::store));
+            }else{
+                buffer.push_back(new Instruction(src, Operand(), des, Operator::def));
+            }
         }
         else if (lval->t == Type::Float)
         {
@@ -878,12 +888,12 @@ void frontend::Analyzer::analysisStmt(Stmt *root, vector<ir::Instruction *> &buf
             if (exp->t == Type::FloatLiteral)
             {
                 auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(src, Operand(), tmp, Operator::def));
-                buffer.push_back(new Instruction(tmp, Operand(), des, Operator::mov));
+                buffer.push_back(new Instruction(src, Operand(), tmp, Operator::fdef));
+                buffer.push_back(new Instruction({lval->arr_name,Type::FloatPtr}, lval->i, src, Operator::store));
             }
             else
             {
-                buffer.push_back(new Instruction(src, Operand(), des, Operator::mov));
+                buffer.push_back(new Instruction({lval->arr_name,Type::FloatPtr}, lval->i, src, Operator::store));
             }
         }
         else
@@ -1150,21 +1160,29 @@ void frontend::Analyzer::analysisLVal(LVal *root, vector<ir::Instruction *> &buf
     {
         // LVal -> Ident '[' Exp ']'
         // 此时Ident是指针,但是可能是一维数组/二维数组
+        // 标记数组名
+        root->arr_name = ident.name;
+        root->is_arr_element = true;
         ANALYSIS(exp, Exp, 2);
         if (ident_ste.dimension.size() == 1)
         {
             // 一维数组，元素是int/float
             auto element_type = (ident.type == Type::IntPtr) ? Type::Int : Type::Float;
             auto dim = exp->is_computable ? Operand(exp->v, exp->t) : symbol_table.get_operand(exp->v);
-            auto des = Operand("t" + std::to_string(tmp_cnt++), element_type);
-            buffer.push_back(new Instruction(ident, dim, des, Operator::load));
-            symbol_table.scope_stack.back().table.insert({des.name, {des}});
-            root->t = des.type;
-            root->v = des.name;
-            root->is_computable = false;
+            // 可能需要深拷贝
+            root->i = dim;
+            if(root->parent->type==NodeType::PRIMARYEXP){
+                auto des = Operand("t" + std::to_string(tmp_cnt++), element_type);
+                buffer.push_back(new Instruction(ident, dim, des, Operator::load));
+                symbol_table.scope_stack.back().table.insert({des.name, {des}});
+                root->t = des.type;
+                root->v = des.name;
+                root->is_computable = false;
+            } 
         }
         else
         {
+            std::cout <<ident_ste.operand.name<<" : "<< ident_ste.dimension.size() << std::endl;
             assert(ident_ste.dimension.size() == 2);
             // 二维数组，元素是intptr/floatptr
             auto element_type = ident.type;
@@ -1191,6 +1209,7 @@ void frontend::Analyzer::analysisLVal(LVal *root, vector<ir::Instruction *> &buf
             }
             // 执行
             buffer.push_back(new Instruction(ident, offset, des, Operator::getptr));
+            // symbol_table.scope_stack.back().table.insert({des.name, {des}});
             root->t = des.type;
             root->v = des.name;
         }
