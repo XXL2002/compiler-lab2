@@ -138,6 +138,7 @@ frontend::Analyzer::Analyzer() : tmp_cnt(0), symbol_table()
 ir::Program frontend::Analyzer::get_ir_program(CompUnit *root)
 {
     // 主接口
+    std::cout << "start!\n";
     ir::Program program = *new ir::Program;
     auto globalFunc = *new ir::Function("globalFunc", ir::Type::null);
     analysisCompUnit(root, program, globalFunc);
@@ -1836,8 +1837,10 @@ void frontend::Analyzer::analysisMulExp(MulExp *root, vector<ir::Instruction *> 
                 assert(optp == TokenType::MOD);
                 if (root->t == Type::Int)
                 {
-                    buffer.push_back(new Instruction(op1, op2, pa, Operator::mod));
-                    root->v = pa.name;
+                    buffer.push_back(new Instruction(op1, op2, result, Operator::mod));
+                    // 加入符号表
+                    symbol_table.scope_stack.back().table.insert({result.name, {result}});
+                    root->v = result.name;
                 }
                 else
                 {
