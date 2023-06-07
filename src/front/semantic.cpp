@@ -139,7 +139,8 @@ ir::Program frontend::Analyzer::get_ir_program(CompUnit *root)
 {
     // 主接口
     ir::Program program = *new ir::Program;
-    analysisCompUnit(root, program);
+    auto globalFunc = *new ir::Function("globalFunc", ir::Type::null);
+    analysisCompUnit(root, program, globalFunc);
     std::cout << program.draw();
     std::cout << "end!\n";
     return program;
@@ -147,7 +148,7 @@ ir::Program frontend::Analyzer::get_ir_program(CompUnit *root)
 
 // add
 // analysis functions
-void frontend::Analyzer::analysisCompUnit(CompUnit *root, ir::Program &program)
+void frontend::Analyzer::analysisCompUnit(CompUnit *root, ir::Program &program, ir::Function &globalFunc)
 {
     /*
     CompUnit -> (Decl | FuncDef) [CompUnit]
@@ -158,32 +159,10 @@ void frontend::Analyzer::analysisCompUnit(CompUnit *root, ir::Program &program)
         {
             auto node = dynamic_cast<CompUnit *>(root->children[i]);
             assert(node);
-            analysisCompUnit(node, program);
+            analysisCompUnit(node, program, globalFunc);
         }
         else if (root->children[i]->type == NodeType::DECL)
         {
-            // 判断是否已有globalFunc，若无则创建
-            ir::Function globalFunc;
-            bool hasGlobal = false;
-            for (int j = 0; j < program.functions.size(); j++)
-            {
-                if (program.functions[j].name == "globalFunc")
-                {
-                    hasGlobal = true;
-                    globalFunc = program.functions[j];
-                    break;
-                }
-            }
-            if (!hasGlobal)
-            {
-                // 为其创建globalFunc
-                globalFunc = *new ir::Function("globalFunc", ir::Type::null);
-                hasGlobal = true;
-            }
-
-            // // 生成globalFunc
-            // ir::Function globalFunc = *new ir::Function("globalFunc",ir::Type::null);
-
             // 生成buffer，并解析Decl
             vector<ir::Instruction *> buffer = *new vector<ir::Instruction *>;
             ANALYSIS(decl, Decl, i);
@@ -191,7 +170,6 @@ void frontend::Analyzer::analysisCompUnit(CompUnit *root, ir::Program &program)
             for (int j = 0; j < buffer.size(); j++)
             {
                 globalFunc.addInst(buffer[j]);
-                // g_init_inst.push_back(buffer[j]);
             }
             // 判断是否已是globalFunc的最后一条
             if (i != root->children.size() - 1)
@@ -398,11 +376,13 @@ void frontend::Analyzer::analysisConstDef(ConstDef *root, vector<ir::Instruction
         // auto des = Operand(new_name, cinitval->t); // name type
         // 要在IR中生成的操作数
         // auto des = Operand(new_name, root_type); // name type
-        assert((cinitval->t == Type::IntLiteral )||(cinitval->t == Type::FloatLiteral));
+        assert((cinitval->t == Type::IntLiteral) || (cinitval->t == Type::FloatLiteral));
         // // 确定def类型
         // auto def_type = (root_type == Type::Float || root_type == Type::FloatLiteral) ? Operator::fdef : Operator::def;
-        if (root_type==Type::Float){
-            if (cinitval->t==Type::IntLiteral){
+        if (root_type == Type::Float)
+        {
+            if (cinitval->t == Type::IntLiteral)
+            {
                 cinitval->t = Type::FloatLiteral;
             }
         }

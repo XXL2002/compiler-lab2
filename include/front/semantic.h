@@ -126,7 +126,7 @@ namespace frontend
 
         // add
         // analysis functions
-        void analysisCompUnit(CompUnit *, ir::Program &);
+        void analysisCompUnit(CompUnit *, ir::Program &, ir::Function &);
         void analysisFuncDef(FuncDef *, ir::Function &);
         void analysisDecl(Decl *, vector<ir::Instruction *> &);
         void analysisConstDecl(ConstDecl *, vector<ir::Instruction *> &);
