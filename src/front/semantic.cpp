@@ -2721,7 +2721,7 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                 assert(optp == TokenType::NEQ);
                 if (root->t == Type::Int)
                 {
-                    buffer.push_back(new Instruction(op1, op2, result, Operator::eq));
+                    buffer.push_back(new Instruction(op1, op2, result, Operator::neq));
                     // 加入符号表
                     symbol_table.scope_stack.back().table.insert({result.name, {result}});
                     root->v = result.name;
@@ -2729,7 +2729,7 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                 }
                 else if (root->t == Type::Float)
                 {
-                    buffer.push_back(new Instruction(op1, op2, result, Operator::eq));
+                    buffer.push_back(new Instruction(op1, op2, result, Operator::neq));
                     // 加入符号表
                     symbol_table.scope_stack.back().table.insert({result.name, {result}});
                     root->v = result.name;
