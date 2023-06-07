@@ -397,52 +397,59 @@ void frontend::Analyzer::analysisConstDef(ConstDef *root, vector<ir::Instruction
         // 添加变量
         // auto des = Operand(new_name, cinitval->t); // name type
         // 要在IR中生成的操作数
-        auto des = Operand(new_name, root_type); // name type
-        // 确定def类型
-        auto def_type = (root_type == Type::Float || root_type == Type::FloatLiteral) ? Operator::fdef : Operator::def;
-        // 待写入的变量值[必定是常量,直接使用名字]
-        auto operand1 = Operand(cinitval->v, cinitval->t); // name type
-        // 类型检查
-        if (root_type == Type::Float)
-        { // 浮点常量定义
-            if (cinitval->t == Type::Int)
-            {
-                // int -> float类型转换临时变量
-                auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                // 需要类型转化IR
-                buffer.push_back(new Instruction(operand1, {}, tmp, Operator::cvt_i2f));
-                operand1 = tmp;
-            }
-            else if (cinitval->t == Type::IntLiteral)
-            { // 整型立即数
-                // 直接修改类型为浮点数立即数即可
-                operand1.type == Type::FloatLiteral;
+        // auto des = Operand(new_name, root_type); // name type
+        assert((cinitval->t == Type::IntLiteral )||(cinitval->t == Type::FloatLiteral));
+        // // 确定def类型
+        // auto def_type = (root_type == Type::Float || root_type == Type::FloatLiteral) ? Operator::fdef : Operator::def;
+        if (root_type==Type::Float){
+            if (cinitval->t==Type::IntLiteral){
+                cinitval->t = Type::FloatLiteral;
             }
         }
-        else
-        { // 整型常量定义
-            assert(root_type == Type::Int);
-            if (cinitval->t == Type::Float)
-            { // 浮点数
-                // float -> int类型转换临时变量("t1",Type::Int)
-                auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                // 需要类型转化IR
-                buffer.push_back(new Instruction(operand1, {}, tmp, Operator::cvt_f2i));
-                // 此时operand1不再是float类型的oprand，而是int类型的tmp
-                operand1 = tmp;
-            }
-            else if (cinitval->t == Type::FloatLiteral)
-            { // 浮点立即数
-                // "10.0"
-                // 转换为整数立即数
-                operand1.name == std::to_string((int)std::atof(operand1.name.c_str())); // 转换过程：string->char*->float->int->string
-                operand1.type = Type::IntLiteral;
-            }
-            // 常量定义IR
-            buffer.push_back(new Instruction(operand1, Operand(), des, def_type)); // 第二个操作数不使用
-            // 插入符号表项
-            symbol_table.scope_stack.back().table.insert({id, {des}}); // map_str_ste{string:STE{Operand,dimension}}
-        }
+        auto des = Operand(cinitval->v, cinitval->t);
+        // // 待写入的变量值[必定是常量,直接使用名字]
+        // auto operand1 = Operand(cinitval->v, cinitval->t); // name type
+        // // 类型检查
+        // if (root_type == Type::Float)
+        // { // 浮点常量定义
+        //     if (cinitval->t == Type::Int)
+        //     {
+        //         // int -> float类型转换临时变量
+        //         auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+        //         // 需要类型转化IR
+        //         buffer.push_back(new Instruction(operand1, {}, tmp, Operator::cvt_i2f));
+        //         operand1 = tmp;
+        //     }
+        //     else if (cinitval->t == Type::IntLiteral)
+        //     { // 整型立即数
+        //         // 直接修改类型为浮点数立即数即可
+        //         operand1.type == Type::FloatLiteral;
+        //     }
+        // }
+        // else
+        // { // 整型常量定义
+        //     assert(root_type == Type::Int);
+        //     if (cinitval->t == Type::Float)
+        //     { // 浮点数
+        //         // float -> int类型转换临时变量("t1",Type::Int)
+        //         auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+        //         // 需要类型转化IR
+        //         buffer.push_back(new Instruction(operand1, {}, tmp, Operator::cvt_f2i));
+        //         // 此时operand1不再是float类型的oprand，而是int类型的tmp
+        //         operand1 = tmp;
+        //     }
+        //     else if (cinitval->t == Type::FloatLiteral)
+        //     { // 浮点立即数
+        //         // "10.0"
+        //         // 转换为整数立即数
+        //         operand1.name == std::to_string((int)std::atof(operand1.name.c_str())); // 转换过程：string->char*->float->int->string
+        //         operand1.type = Type::IntLiteral;
+        //     }
+        // // 常量定义IR
+        // buffer.push_back(new Instruction({cinitval->v,cinitval->t}, Operand(), des, def_type)); // 第二个操作数不使用
+        // 插入符号表项
+        symbol_table.scope_stack.back().table.insert({id, {des}}); // map_str_ste{string:STE{Operand,dimension}}
+        // }
     }
     else
     { // 数组
@@ -1193,7 +1200,8 @@ void frontend::Analyzer::analysisLVal(LVal *root, vector<ir::Instruction *> &buf
         // 此时Ident是变量/常量
         root->is_computable = (ident.type == Type::IntLiteral || ident.type == Type::FloatLiteral) ? true : false;
         root->t = ident.type;
-        root->v = term->token.value;
+        // root->v = term->token.value;
+        root->v = root->is_computable ? ident.name : term->token.value;
         // root->v = (ident.type == Type::IntLiteral || ident.type == Type::FloatLiteral) ? ident.name : term->token.value;
         // std::cout<<"Lval------------\n---v:"<< root->v<<"->"<< symbol_table.get_operand(root->v).name << "\nprimaryExp.t:" << toString(root->t) <<"\nprimaryExp.is_computable:"<<root->is_computable<< std::endl;
     }
