@@ -157,7 +157,7 @@ struct ConstDef: AstNode{
 struct ConstInitVal: AstNode{
     string v;
     Type t;
-
+    std::vector<ir::Operand> value;
     /**
      * @brief constructor
      */
@@ -186,6 +186,7 @@ struct InitVal: AstNode{
     bool is_computable = false;
     string v;
     Type t;
+    std::vector<ir::Operand> value;
 
     /**
      * @brief constructor

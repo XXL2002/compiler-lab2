@@ -5,7 +5,7 @@
 
 using frontend::Parser;
 
-#define DEBUG_PARSER
+// #define DEBUG_PARSER
 
 #define ERROR                                                   \
     std::cout << "parse " + toString(root->type) + " ERROR!\n"; \
