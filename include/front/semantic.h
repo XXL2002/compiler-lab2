@@ -56,6 +56,7 @@ namespace frontend
         vector<ScopeInfo> scope_stack;
         // 存放函数块的表
         map<std::string, ir::Function *> functions;
+        int scope_cnt = 0;
 
         /**
          * @brief enter a new scope, record the infomation in scope stacks

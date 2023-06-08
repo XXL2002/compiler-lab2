@@ -47,7 +47,7 @@ map<std::string, ir::Function *> *frontend::get_lib_funcs()
 void frontend::SymbolTable::add_scope(Block *root)
 {
     // 唯一标识符
-    int cnt = scope_stack.empty() ? 0 : scope_stack.back().cnt + 1;
+    int cnt = ++scope_cnt;
     // 作用域类型分辨符
     string name;
     if (root->parent->type == NodeType::FUNCDEF)
@@ -103,7 +103,7 @@ string frontend::SymbolTable::get_scoped_name(string id) const
 Operand frontend::SymbolTable::get_operand(string id) const
 {
     // 由近及远查找同名变量
-    for (int i = this->scope_stack.back().cnt; i >= 0; i--)
+    for (int i = this->scope_stack.size(); i >= 0; i--)
     {
         auto it = this->scope_stack[i].table.find(id);
         if (it != this->scope_stack[i].table.end())
@@ -116,7 +116,7 @@ Operand frontend::SymbolTable::get_operand(string id) const
 frontend::STE frontend::SymbolTable::get_ste(string id) const
 {
     // 由近及远查找同名变量
-    for (int i = this->scope_stack.back().cnt; i >= 0; i--)
+    for (int i = this->scope_stack.size(); i >= 0; i--)
     {
         auto it = this->scope_stack[i].table.find(id);
         if (it != this->scope_stack[i].table.end())
