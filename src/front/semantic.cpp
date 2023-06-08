@@ -2853,7 +2853,10 @@ void frontend::Analyzer::analysisLAndExp(LAndExp *root, vector<ir::Instruction *
         // 确认操作类型
         assert(dynamic_cast<Term *>(root->children[1])->token.type == TokenType::AND);
 
-        ANALYSIS(landexp, LAndExp, 2);
+        auto tmp = *new std::vector<Instruction *>;
+        auto landexp = dynamic_cast<LAndExp *>(root->children[2]); 
+        assert(landexp); 
+        analysisLAndExp(landexp, tmp);
 
         // 右节点[IR中的]
         auto child = symbol_table.get_operand(landexp->v);
@@ -2864,7 +2867,17 @@ void frontend::Analyzer::analysisLAndExp(LAndExp *root, vector<ir::Instruction *
         root->is_computable = false;
 
         // 处理操作符,并赋值
-        buffer.push_back(new Instruction(pa, child, result, Operator::_and));
+        // if (!op1) -> des = 0
+        auto tmp_operand = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+        buffer.push_back(new Instruction(pa, {}, tmp_operand, Operator::_not));
+        buffer.push_back(new Instruction(tmp_operand, {}, {std::to_string(tmp.size() + 3), Type::IntLiteral}, Operator::_goto));
+        // else des = child
+        buffer.insert(buffer.end(), tmp.begin(), tmp.end());
+        buffer.push_back(new Instruction(child, {}, result, Operator::mov));
+        buffer.push_back(new Instruction({}, {}, {"2", Type::IntLiteral}, Operator::_goto));
+        buffer.push_back(new Instruction({"0", Type::IntLiteral}, {}, result, Operator::def));
+        
+        // buffer.push_back(new Instruction(pa, child, result, Operator::_and));
         symbol_table.scope_stack.back().table.insert({result.name, {result}});
         root->v = result.name;
         root->t = result.type;
@@ -2892,7 +2905,11 @@ void frontend::Analyzer::analysisLOrExp(LOrExp *root, vector<ir::Instruction *> 
         // 确认操作类型
         assert(dynamic_cast<Term *>(root->children[1])->token.type == TokenType::OR);
 
-        ANALYSIS(lorexp, LOrExp, 2);
+        auto tmp = *new std::vector<Instruction *>;
+        auto lorexp = dynamic_cast<LOrExp *>(root->children[2]); 
+        assert(lorexp); 
+        analysisLOrExp(lorexp, tmp);
+
         // 右节点[IR中的]
         auto child = symbol_table.get_operand(lorexp->v);
         // 左节点[IR中的]
@@ -2901,49 +2918,18 @@ void frontend::Analyzer::analysisLOrExp(LOrExp *root, vector<ir::Instruction *> 
         root->is_computable = false;
 
         // 处理操作符,并赋值
-        buffer.push_back(new Instruction(pa, child, result, Operator::_or));
+        // if (pa) -> des = 1
+        buffer.push_back(new Instruction(pa, {}, {std::to_string(tmp.size() + 3), Type::IntLiteral}, Operator::_goto));
+        // else -> des = child
+        buffer.insert(buffer.end(), tmp.begin(), tmp.end());
+        buffer.push_back(new Instruction(child, {}, result, Operator::mov));
+        buffer.push_back(new Instruction({}, {}, {"2", Type::IntLiteral}, Operator::_goto));
+        buffer.push_back(new Instruction({"1", Type::IntLiteral}, {}, result, Operator::def));
+        // buffer.push_back(new Instruction(pa, child, result, Operator::_or));
         symbol_table.scope_stack.back().table.insert({result.name, {result}});
         root->v = result.name;
         root->t = result.type;
     }
-
-    // // LOrExp -> LAndExp
-    // if (root->children.size() == 1)
-    // {
-    //     ANALYSIS(node, LAndExp, 0);
-    //     COPY_EXP_NODE(node, root);
-    // }
-    // // LOrExp -> LAndExp '||' LOrExp
-    // else
-    // {
-    //     ANALYSIS(andexp, LAndExp, 0);
-    //     // 相当于ANALYSIS(orexp,LOrExp,2)
-    //     auto tmp = vector<Instruction *>();
-    //     auto orexp = dynamic_cast<LOrExp *>(root->children[2]);
-    //     assert(orexp);
-    //     analysisLOrExp(orexp, tmp);
-    //     // 临时变量名称
-    //     // 指导书：一个字符串, 或者是重命名后的变量名, 或者是临时变量名称, 也可以是常数字符串
-    //     root->v = "t" + std::to_string(tmp_cnt++);
-    //     root->t = Type::Int;
-    //     Operand op1 = {andexp->v, andexp->t};
-    //     Operand op2 = {orexp->v, orexp->t};
-    //     // 目的地址
-    //     Operand des = {root->v, root->t};
-    //     /*
-    //         goto中des为偏移量，goto [pc+des]
-    //         if (op1):
-    //             => 设置des为1，即 Instruction({{"1", Type::IntLiteral}, {}, des, Operator::mov})
-    //         else:
-    //             => 设置des为op2的值，即 Instruction({op2, {}, des, Operator::mov})
-    //             => 跳出[偏移量为2]
-    //     */
-    //     buffer.push_back(new Instruction({op1, {}, {std::to_string(tmp.size() + 3), Type::IntLiteral}, Operator::_goto})); // if (op1) -> des = 1
-    //     buffer.insert(buffer.end(), tmp.begin(), tmp.end());
-    //     buffer.push_back(new Instruction({op2, {}, des, Operator::mov})); // else -> des = op2
-    //     buffer.push_back(new Instruction({{}, {}, {"2", Type::IntLiteral}, Operator::_goto}));
-    //     buffer.push_back(new Instruction({{"1", Type::IntLiteral}, {}, des, Operator::mov}));
-    // }
 }
 
 void frontend::Analyzer::analysisConstExp(ConstExp *root, vector<ir::Instruction *> &buffer)
