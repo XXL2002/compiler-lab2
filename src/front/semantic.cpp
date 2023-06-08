@@ -226,7 +226,8 @@ void frontend::Analyzer::analysisCompUnit(CompUnit *root, ir::Program &program, 
         }
         else if (root->children[i]->type == NodeType::FUNCDEF)
         {
-            if (globalFunc.InstVec.empty()){
+            if (globalFunc.InstVec.empty())
+            {
                 ir::Instruction *globalreturn = new ir::Instruction(ir::Operand(),
                                                                     ir::Operand(),
                                                                     ir::Operand(), ir::Operator::_return);
@@ -285,8 +286,9 @@ void frontend::Analyzer::analysisFuncDef(FuncDef *root, ir::Function &function)
     }
     // 退出function param作用域
     symbol_table.exit_scope();
-    if (root->t==Type::null){
-        function.addInst(new Instruction({},{},{},Operator::_return));
+    if (root->t == Type::null)
+    {
+        function.addInst(new Instruction({}, {}, {}, Operator::_return));
     }
 }
 
@@ -408,9 +410,14 @@ void frontend::Analyzer::analysisConstDef(ConstDef *root, vector<ir::Instruction
             symbol_table.scope_stack.back().table.insert({id, {arr, *dim}});
 
             ANALYSIS(cinit, ConstInitVal, 5);
-            for (int i = 0; i < cinit->value.size(); i++)
+            int i = 0;
+            for (; i < cinit->value.size(); i++)
             {
                 buffer.push_back(new Instruction(arr, {std::to_string(i), Type::IntLiteral}, cinit->value[i], Operator::store));
+            }
+            for (; i < std::stoi(c1.name); i++)
+            {
+                buffer.push_back(new Instruction(arr, {std::to_string(i), Type::IntLiteral}, {"0",Type::IntLiteral}, Operator::store));
             }
         }
         else
@@ -435,9 +442,14 @@ void frontend::Analyzer::analysisConstDef(ConstDef *root, vector<ir::Instruction
 
             // 赋值
             ANALYSIS(cinit, ConstInitVal, 8);
-            for (int i = 0; i < cinit->value.size(); i++)
+            int i = 0;
+            for (; i < cinit->value.size(); i++)
             {
                 buffer.push_back(new Instruction(arr, {std::to_string(i), Type::IntLiteral}, cinit->value[i], Operator::store));
+            }
+            for (; i < std::stoi(c1.name)*std::stoi(c2.name); i++)
+            {
+                buffer.push_back(new Instruction(arr, {std::to_string(i), Type::IntLiteral}, {"0",Type::IntLiteral}, Operator::store));
             }
         }
         todo;
@@ -642,9 +654,14 @@ void frontend::Analyzer::analysisVarDef(VarDef *root, vector<ir::Instruction *> 
                 symbol_table.scope_stack.back().table.insert({id, {arr, *dim}});
 
                 ANALYSIS(init, InitVal, 5);
-                for (int i = 0; i < init->value.size(); i++)
+                int i = 0;
+                for (; i < init->value.size(); i++)
                 {
                     buffer.push_back(new Instruction(arr, {std::to_string(i), Type::IntLiteral}, init->value[i], Operator::store));
+                }
+                for (; i < std::stoi(c1.name); i++)
+                {
+                    buffer.push_back(new Instruction(arr, {std::to_string(i), Type::IntLiteral}, {"0",Type::IntLiteral}, Operator::store));
                 }
                 todo;
             }
@@ -689,9 +706,14 @@ void frontend::Analyzer::analysisVarDef(VarDef *root, vector<ir::Instruction *> 
 
                 // 赋值
                 ANALYSIS(init, InitVal, 8);
-                for (int i = 0; i < init->value.size(); i++)
+                int i = 0;
+                for (; i < init->value.size(); i++)
                 {
                     buffer.push_back(new Instruction(arr, {std::to_string(i), Type::IntLiteral}, init->value[i], Operator::store));
+                }
+                for (; i < std::stoi(c1.name)*std::stoi(c2.name); i++)
+                {
+                    buffer.push_back(new Instruction(arr, {std::to_string(i), Type::IntLiteral}, {"0",Type::IntLiteral}, Operator::store));
                 }
                 todo;
             }
@@ -879,26 +901,37 @@ void frontend::Analyzer::analysisStmt(Stmt *root, vector<ir::Instruction *> &buf
         {
             // 加上类型检查更好
             assert(exp->t == Type::Float || exp->t == Type::FloatLiteral);
-            if (exp->t == Type::FloatLiteral)
+            // if (exp->t == Type::FloatLiteral)
+            // {
+            //     auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+            //     buffer.push_back(new Instruction(src, Operand(), tmp, Operator::fdef));
+            //     buffer.push_back(new Instruction({lval->arr_name, Type::FloatPtr}, lval->i, src, Operator::store));
+            // }
+            // else
+            // {
+            //     buffer.push_back(new Instruction({lval->arr_name, Type::FloatPtr}, lval->i, src, Operator::store));
+            // }
+            if (lval->is_arr_element)
             {
-                auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(src, Operand(), tmp, Operator::fdef));
                 buffer.push_back(new Instruction({lval->arr_name, Type::FloatPtr}, lval->i, src, Operator::store));
             }
             else
             {
-                buffer.push_back(new Instruction({lval->arr_name, Type::FloatPtr}, lval->i, src, Operator::store));
+                buffer.push_back(new Instruction(src, Operand(), des, Operator::fdef));
             }
         }
         else
         {
-            std::cout << "lval.t:" << toString(lval->t) << ",lval.name:" << lval->v << "\n";
+            // std::cout << "lval.t:" << toString(lval->t) << ",lval.name:" << lval->v << "\n";
             assert((lval->t == Type::IntPtr || lval->t == Type::FloatPtr));
             // 加上类型检查更好
-            assert(exp->t == ((lval->t == Type::IntPtr) ? Type::Int : Type::Float));
-            auto zero = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-            buffer.push_back(new Instruction({"0", Type::IntLiteral}, Operand(), zero, Operator::def));
-            buffer.push_back(new Instruction(des, zero, src, Operator::store));
+            // TODO;
+            // assert(exp->t == ((lval->t == Type::IntPtr) ? Type::Int : Type::Float));
+            // auto zero = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+            // buffer.push_back(new Instruction({"0", Type::IntLiteral}, Operand(), zero, Operator::def));
+            // buffer.push_back(new Instruction(des, zero, src, Operator::store));
+            std::cout << "arr_name:" << lval->arr_name << std::endl;
+            buffer.push_back(new Instruction({lval->arr_name, lval->t}, lval->i, src, Operator::store));
         }
     }
     else if (root->children[0]->type == NodeType::BLOCK)
@@ -1168,12 +1201,21 @@ void frontend::Analyzer::analysisLVal(LVal *root, vector<ir::Instruction *> &buf
             root->i = dim;
             if (root->parent->type == NodeType::PRIMARYEXP)
             {
+                // 是右值
                 auto des = Operand("t" + std::to_string(tmp_cnt++), element_type);
                 buffer.push_back(new Instruction(ident, dim, des, Operator::load));
                 symbol_table.scope_stack.back().table.insert({des.name, {des}});
                 root->t = des.type;
                 root->v = des.name;
                 root->is_computable = false;
+            }
+            else
+            {
+                // 是左值
+                // 数组类型
+                root->t = ident.type;
+                // 数组原名
+                root->v = term->token.value;
             }
         }
         else
@@ -1364,7 +1406,7 @@ void frontend::Analyzer::analysisUnaryExp(UnaryExp *root, vector<ir::Instruction
         GET_CHILD_PTR(func, Term, 0);
         string func_name = func->token.value;
         Type return_type = symbol_table.functions[func_name]->returnType;
-        std::cout << "returnType:" << toString(return_type) << "\n";
+        // std::cout << "returnType:" << toString(return_type) << "\n";
         if (root->children.size() > 3)
         {
             // 有实参
@@ -1576,7 +1618,7 @@ void frontend::Analyzer::analysisFuncRParams(FuncRParams *root, vector<ir::Instr
             }
             params.push_back(param);
         }
-        std::cout << "GET Params\n";
+        // std::cout << "GET Params\n";
         callinst.argumentList = params;
     }
 }
@@ -2847,8 +2889,8 @@ void frontend::Analyzer::analysisLAndExp(LAndExp *root, vector<ir::Instruction *
         assert(dynamic_cast<Term *>(root->children[1])->token.type == TokenType::AND);
 
         auto tmp = *new std::vector<Instruction *>;
-        auto landexp = dynamic_cast<LAndExp *>(root->children[2]); 
-        assert(landexp); 
+        auto landexp = dynamic_cast<LAndExp *>(root->children[2]);
+        assert(landexp);
         analysisLAndExp(landexp, tmp);
 
         // 右节点[IR中的]
@@ -2869,7 +2911,7 @@ void frontend::Analyzer::analysisLAndExp(LAndExp *root, vector<ir::Instruction *
         buffer.push_back(new Instruction(child, {}, result, Operator::mov));
         buffer.push_back(new Instruction({}, {}, {"2", Type::IntLiteral}, Operator::_goto));
         buffer.push_back(new Instruction({"0", Type::IntLiteral}, {}, result, Operator::def));
-        
+
         // buffer.push_back(new Instruction(pa, child, result, Operator::_and));
         symbol_table.scope_stack.back().table.insert({result.name, {result}});
         root->v = result.name;
@@ -2899,8 +2941,8 @@ void frontend::Analyzer::analysisLOrExp(LOrExp *root, vector<ir::Instruction *> 
         assert(dynamic_cast<Term *>(root->children[1])->token.type == TokenType::OR);
 
         auto tmp = *new std::vector<Instruction *>;
-        auto lorexp = dynamic_cast<LOrExp *>(root->children[2]); 
-        assert(lorexp); 
+        auto lorexp = dynamic_cast<LOrExp *>(root->children[2]);
+        assert(lorexp);
         analysisLOrExp(lorexp, tmp);
 
         // 右节点[IR中的]
