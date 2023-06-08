@@ -226,20 +226,7 @@ void frontend::Analyzer::analysisCompUnit(CompUnit *root, ir::Program &program, 
         }
         else if (root->children[i]->type == NodeType::FUNCDEF)
         {
-            // 判断是否有globalFunc
-            bool hasGlobal = false;
-            for (int j = 0; j < program.functions.size(); j++)
-            {
-                if (program.functions[j].name == "globalFunc")
-                {
-                    hasGlobal = true;
-                    break;
-                }
-            }
-            if (!hasGlobal)
-            {
-                // 为其创建globalFunc
-                auto globalFunc = *new ir::Function("globalFunc", ir::Type::null);
+            if (globalFunc.InstVec.empty()){
                 ir::Instruction *globalreturn = new ir::Instruction(ir::Operand(),
                                                                     ir::Operand(),
                                                                     ir::Operand(), ir::Operator::_return);
