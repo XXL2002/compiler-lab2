@@ -874,12 +874,13 @@ void frontend::Analyzer::analysisStmt(Stmt *root, vector<ir::Instruction *> &buf
         // string lnew_name = symbol_table.get_scoped_name(lval->v);
         // auto des = Operand(lnew_name, lval->t);
         auto src = exp->is_computable ? Operand(exp->v, exp->t) : symbol_table.get_operand(exp->v);
-        auto des = lval->is_computable ? Operand(lval->v, lval->t) : symbol_table.get_operand(lval->v);
+        // auto des = lval->is_computable ? Operand(lval->v, lval->t) : symbol_table.get_operand(lval->v);
         // std::cout << "!!!!!!!!!!!left.name:" << des.name << "\nleft.type:" << toString(des.type) << "\n";
         if (lval->t == Type::Int)
         {
             // 加上类型检查更好
             assert(exp->t == Type::Int || exp->t == Type::IntLiteral);
+            auto des = lval->is_computable ? Operand(lval->v, lval->t) : symbol_table.get_operand(lval->v);
             // if (exp->t == Type::IntLiteral)
             // {
             //     auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
