@@ -777,7 +777,8 @@ void frontend::Analyzer::analysisFuncFParam(FuncFParam *root, ir::Function &func
         // 设置为指针类型
         parma_type = (parma_type == Type::Int) ? Type::IntPtr : Type::FloatPtr;
         dim.push_back(0);
-        if (root->children.size()>4){
+        if (root->children.size() > 4)
+        {
             ANALYSIS(exp, Exp, 5);
             assert(exp->is_computable);
             dim.push_back(std::stoi(exp->v));
@@ -875,9 +876,12 @@ void frontend::Analyzer::analysisStmt(Stmt *root, vector<ir::Instruction *> &buf
             // }else{
             //     buffer.push_back(new Instruction(src, Operand(), des, Operator::mov));
             // }
-            if (lval->is_arr_element){
-                buffer.push_back(new Instruction({lval->arr_name,Type::IntPtr}, lval->i, src, Operator::store));
-            }else{
+            if (lval->is_arr_element)
+            {
+                buffer.push_back(new Instruction({lval->arr_name, Type::IntPtr}, lval->i, src, Operator::store));
+            }
+            else
+            {
                 buffer.push_back(new Instruction(src, Operand(), des, Operator::def));
             }
         }
@@ -889,11 +893,11 @@ void frontend::Analyzer::analysisStmt(Stmt *root, vector<ir::Instruction *> &buf
             {
                 auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
                 buffer.push_back(new Instruction(src, Operand(), tmp, Operator::fdef));
-                buffer.push_back(new Instruction({lval->arr_name,Type::FloatPtr}, lval->i, src, Operator::store));
+                buffer.push_back(new Instruction({lval->arr_name, Type::FloatPtr}, lval->i, src, Operator::store));
             }
             else
             {
-                buffer.push_back(new Instruction({lval->arr_name,Type::FloatPtr}, lval->i, src, Operator::store));
+                buffer.push_back(new Instruction({lval->arr_name, Type::FloatPtr}, lval->i, src, Operator::store));
             }
         }
         else
@@ -1171,18 +1175,19 @@ void frontend::Analyzer::analysisLVal(LVal *root, vector<ir::Instruction *> &buf
             auto dim = exp->is_computable ? Operand(exp->v, exp->t) : symbol_table.get_operand(exp->v);
             // 可能需要深拷贝
             root->i = dim;
-            if(root->parent->type==NodeType::PRIMARYEXP){
+            if (root->parent->type == NodeType::PRIMARYEXP)
+            {
                 auto des = Operand("t" + std::to_string(tmp_cnt++), element_type);
                 buffer.push_back(new Instruction(ident, dim, des, Operator::load));
                 symbol_table.scope_stack.back().table.insert({des.name, {des}});
                 root->t = des.type;
                 root->v = des.name;
                 root->is_computable = false;
-            } 
+            }
         }
         else
         {
-            std::cout <<ident_ste.operand.name<<" : "<< ident_ste.dimension.size() << std::endl;
+            std::cout << ident_ste.operand.name << " : " << ident_ste.dimension.size() << std::endl;
             assert(ident_ste.dimension.size() == 2);
             // 二维数组，元素是intptr/floatptr
             auto element_type = ident.type;
@@ -2498,32 +2503,71 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
         EqExp.v
         EqExp.t
     */
+    /*
+         修改思路：结果过滤为int变量
+    */
     ANALYSIS(relexp, RelExp, 0);
     // 暂时先赋值第一个子节点的值
     COPY_EXP_NODE(relexp, root);
-    if (root->children.size() > 1)
+    if (root->children.size() == 1)
     {
+        // EqExp -> RelExp
+        // 类型检查->int
+        root->is_computable = false;
+        root->t = Type::Int;
+
+        auto src = relexp->is_computable ? Operand(relexp->v, relexp->t) : symbol_table.get_operand(relexp->v);
+        if (relexp->t == Type::IntLiteral)
+        {
+            auto des = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+            buffer.push_back(new Instruction(src, {}, des, Operator::def));
+            root->v = des.name;
+            symbol_table.scope_stack.back().table.insert({des.name, {des}});
+        }
+        else if (relexp->t == Type::FloatLiteral)
+        {
+            auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+            auto des = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+            buffer.push_back(new Instruction(src, {}, tmp, Operator::fdef));
+            buffer.push_back(new Instruction(tmp, {}, des, Operator::cvt_f2i));
+            root->v = des.name;
+            symbol_table.scope_stack.back().table.insert({des.name, {des}});
+        }
+        else if (relexp->t == Type::Float)
+        {
+            auto des = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+            buffer.push_back(new Instruction(src, {}, des, Operator::cvt_f2i));
+            root->v = des.name;
+            symbol_table.scope_stack.back().table.insert({des.name, {des}});
+        }
+        else
+        {
+            assert(relexp->t == Type::Int);
+            root->v = relexp->v;
+        }
+    }
+    else
+    {
+        // EqExp -> RelExp { ('==' | '!=') RelExp }+
         // 待写入IR的addexp结果
-        Operand result;
-        result.name = "t" + std::to_string(tmp_cnt++);
+        // Operand result;
+        // result.name = "t" + std::to_string(tmp_cnt++);
+        auto result = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
         for (int idx = 2; idx < root->children.size(); idx += 2)
         {
-            // 获取操作类型
+            // 获取操作类型 == / !=
             TokenType optp = dynamic_cast<Term *>(root->children[idx - 1])->token.type;
             ANALYSIS(relexp, RelExp, idx);
-            // auto child = Operand(mulexp->v, mulexp->t);
             // 右节点[IR中的]
             auto child = relexp->is_computable ? Operand(relexp->v, relexp->t) : symbol_table.get_operand(relexp->v);
-            // std::cout << "--child.name:" << child.name << "\nchild.type:" << toString(child.type) << "\n";
-            // auto pa = Operand(root->v, root->t);
             // 左节点[IR中的]
             auto pa = root->is_computable ? Operand(root->v, root->t) : symbol_table.get_operand(root->v);
-            // std::cout << "--pa.name:" << pa.name << "\npa.type:" << toString(pa.type) << "\n";
             Operand op1;
             Operand op2;
+            // 类型检查后op1/op2的类型
+            Type common_type;
 
-            // 处理is_computable:出现不是立即数的直接置为false，否则保持不变
-            root->is_computable = relexp->is_computable ? root->is_computable : false;
+            root->is_computable = false;
 
             // 处理t，并做类型检查
             if (pa.type == Type::Int)
@@ -2532,35 +2576,43 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                 {
                     // do nothing
                     op1 = pa;
+
                     op2 = child;
-                    root->t = Type::Int;
+
+                    common_type = Type::Int;
                 }
                 else if (child.type == Type::IntLiteral)
                 {
                     op1 = pa;
+
                     // op2立即数转变量
                     op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::def));
-                    root->t = Type::Int;
+
+                    common_type = Type::Int;
                 }
                 else if (child.type == Type::Float)
                 {
-                    op2 = child;
                     // op1->float
                     op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::cvt_i2f));
-                    root->t = Type::Float;
+
+                    op2 = child;
+
+                    common_type = Type::Float;
                 }
                 else
                 {
                     assert(child.type == Type::FloatLiteral);
-                    // op2立即数变变量
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                    buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
                     // op1->float
                     op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::cvt_i2f));
-                    root->t = Type::Float;
+
+                    // op2立即数变变量
+                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
+
+                    common_type = Type::Float;
                 }
             }
             else if (pa.type == Type::IntLiteral)
@@ -2570,20 +2622,18 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                     // op1立即数变变量
                     op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::def));
+
                     op2 = child;
-                    root->t = Type::Int;
+
+                    common_type = Type::Int;
                 }
                 else if (child.type == Type::IntLiteral)
                 {
-                    // // op1立即数变变量
-                    // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                    // buffer.push_back(new Instruction(pa, Operand(), op1, Operator::def));
-                    // // op2立即数变变量
-                    // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                    // buffer.push_back(new Instruction(child, Operand(), op2, Operator::def));
                     op1 = pa;
+
                     op2 = child;
-                    root->t = Type::IntLiteral;
+
+                    common_type = Type::IntLiteral;
                 }
                 else if (child.type == Type::Float)
                 {
@@ -2592,25 +2642,21 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                     buffer.push_back(new Instruction(pa, Operand(), tmp, Operator::def));
                     // op1->float
                     op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                    buffer.push_back(new Instruction(pa, Operand(), op1, Operator::cvt_i2f));
+                    buffer.push_back(new Instruction(tmp, Operand(), op1, Operator::cvt_i2f));
+
                     op2 = child;
-                    root->t = Type::Float;
+
+                    common_type = Type::Float;
                 }
                 else
                 {
                     assert(child.type == Type::FloatLiteral);
-                    // // op1立即数转变量
-                    // auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                    // buffer.push_back(new Instruction(pa, Operand(), tmp, Operator::def));
-                    // // op1->float
-                    // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                    // buffer.push_back(new Instruction(tmp, Operand(), op1, Operator::cvt_i2f));
-                    // // op2立即数转变量
-                    // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                    // buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
                     op1 = pa;
+                    op1.type = Type::FloatLiteral;
+
                     op2 = child;
-                    root->t = Type::FloatLiteral;
+
+                    common_type = Type::FloatLiteral;
                 }
             }
             else if (pa.type == Type::Float)
@@ -2618,37 +2664,45 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                 if (child.type == Type::Int)
                 {
                     op1 = pa;
+
                     // op2->float
                     op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::cvt_i2f));
-                    root->t = Type::Float;
+
+                    common_type = Type::Float;
                 }
                 else if (child.type == Type::IntLiteral)
                 {
                     op1 = pa;
+
                     // op2立即数转变量
                     auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
                     buffer.push_back(new Instruction(child, Operand(), tmp, Operator::def));
                     // op2->float
                     op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(tmp, Operand(), op2, Operator::cvt_i2f));
-                    root->t = Type::Float;
+
+                    common_type = Type::Float;
                 }
                 else if (child.type == Type::Float)
                 {
                     // do nothing
                     op1 = pa;
+
                     op2 = child;
+
                     root->t = Type::Float;
                 }
                 else
                 {
                     assert(child.type == Type::FloatLiteral);
                     op1 = pa;
+
                     // op2立即数转变量
                     op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
-                    root->t = Type::Float;
+
+                    common_type = Type::Float;
                 }
             }
             else
@@ -2659,54 +2713,47 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                     // op1立即数转变量
                     op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
+
                     // op2->float
                     op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::cvt_i2f));
-                    root->t = Type::Float;
+
+                    common_type = Type::Float;
                 }
                 else if (child.type == Type::IntLiteral)
                 {
-                    // // op1立即数转变量
-                    // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                    // buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
-                    // // op2立即数转变量
-                    // auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                    // buffer.push_back(new Instruction(child, Operand(), tmp, Operator::def));
-                    // // op2->float
-                    // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                    // buffer.push_back(new Instruction(tmp, Operand(), op2, Operator::cvt_i2f));
                     op1 = pa;
+
                     op2 = child;
-                    root->t = Type::FloatLiteral;
+                    op2.type = Type::FloatLiteral;
+
+                    common_type = Type::FloatLiteral;
                 }
                 else if (child.type == Type::Float)
                 {
                     // op1立即数转变量
                     op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
+
                     op2 = child;
-                    root->t = Type::Float;
+
+                    common_type = Type::Float;
                 }
                 else
                 {
                     assert(child.type == Type::FloatLiteral);
-                    // // op1立即数转变量
-                    // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                    // buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
-                    // // op2立即数转变量
-                    // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                    // buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
                     op1 = pa;
+
                     op2 = child;
-                    root->t = Type::FloatLiteral;
+
+                    common_type = Type::FloatLiteral;
                 }
             }
-            result.type = root->t;
 
             // 处理操作符,并赋值
             if (optp == TokenType::EQL)
             {
-                if (root->t == Type::Int)
+                if (common_type == Type::Int)
                 {
                     buffer.push_back(new Instruction(op1, op2, result, Operator::eq));
                     // 加入符号表
@@ -2714,7 +2761,7 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                     root->v = result.name;
                     root->t = Type::Int;
                 }
-                else if (root->t == Type::Float)
+                else if (common_type == Type::Float)
                 {
                     buffer.push_back(new Instruction(op1, op2, result, Operator::eq));
                     // 加入符号表
@@ -2725,20 +2772,27 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                 else if (root->t == Type::IntLiteral)
                 {
                     // 直接计算
-                    root->v = stoi(op1.name) == stoi(op2.name) ? "1" : "0";
-                    root->t = Type::IntLiteral;
+                    buffer.push_back(new Instruction({stoi(op1.name) == stoi(op2.name) ? "1" : "0", Type::IntLiteral}, {}, result, Operator::def));
+                    // 加入符号表
+                    symbol_table.scope_stack.back().table.insert({result.name, {result}});
+                    root->v = result.name;
+                    root->t = Type::Int;
                 }
                 else
                 {
                     assert(root->t == Type::FloatLiteral);
-                    root->v = stof(op1.name) == stof(op2.name) ? "1" : "0";
-                    root->t = Type::IntLiteral;
+                    // 直接计算
+                    buffer.push_back(new Instruction({stof(op1.name) == stof(op2.name) ? "1" : "0", Type::IntLiteral}, {}, result, Operator::def));
+                    // 加入符号表
+                    symbol_table.scope_stack.back().table.insert({result.name, {result}});
+                    root->v = result.name;
+                    root->t = Type::Int;
                 }
             }
             else
             {
                 assert(optp == TokenType::NEQ);
-                if (root->t == Type::Int)
+                if (common_type == Type::Int)
                 {
                     buffer.push_back(new Instruction(op1, op2, result, Operator::neq));
                     // 加入符号表
@@ -2746,7 +2800,7 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                     root->v = result.name;
                     root->t = Type::Int;
                 }
-                else if (root->t == Type::Float)
+                else if (common_type == Type::Float)
                 {
                     buffer.push_back(new Instruction(op1, op2, result, Operator::neq));
                     // 加入符号表
@@ -2757,14 +2811,21 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                 else if (root->t == Type::IntLiteral)
                 {
                     // 直接计算
-                    root->v = stoi(op1.name) != stoi(op2.name) ? "1" : "0";
-                    root->t = Type::IntLiteral;
+                    buffer.push_back(new Instruction({stoi(op1.name) != stoi(op2.name) ? "1" : "0", Type::IntLiteral}, {}, result, Operator::def));
+                    // 加入符号表
+                    symbol_table.scope_stack.back().table.insert({result.name, {result}});
+                    root->v = result.name;
+                    root->t = Type::Int;
                 }
                 else
                 {
                     assert(root->t == Type::FloatLiteral);
-                    root->v = stof(op1.name) != stof(op2.name) ? "1" : "0";
-                    root->t = Type::IntLiteral;
+                    // 直接计算
+                    buffer.push_back(new Instruction({stof(op1.name) != stof(op2.name) ? "1" : "0", Type::IntLiteral}, {}, result, Operator::def));
+                    // 加入符号表
+                    symbol_table.scope_stack.back().table.insert({result.name, {result}});
+                    root->v = result.name;
+                    root->t = Type::Int;
                 }
             }
         }
@@ -2780,240 +2841,33 @@ void frontend::Analyzer::analysisLAndExp(LAndExp *root, vector<ir::Instruction *
         LAndExp.t
     */
     ANALYSIS(eqexp, EqExp, 0);
+    // eqexp已将结果全部过滤为int变量
+    assert(eqexp->t == Type::Int);
     COPY_EXP_NODE(eqexp, root);
     if (root->children.size() != 1)
     {
         // LAndExp -> EqExp '&&' LAndExp
         // 待写入IR的landexp结果
-        Operand result;
-        result.name = "t" + std::to_string(tmp_cnt++);
-        // 获取操作类型
-        TokenType optp = dynamic_cast<Term *>(root->children[1])->token.type;
+        auto result = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+
+        // 确认操作类型
+        assert(dynamic_cast<Term *>(root->children[1])->token.type == TokenType::AND);
+
         ANALYSIS(landexp, LAndExp, 2);
-        // auto child = Operand(mulexp->v, mulexp->t);
+
         // 右节点[IR中的]
-        auto child = landexp->is_computable ? Operand(landexp->v, landexp->t) : symbol_table.get_operand(landexp->v);
-        // std::cout << "--child.name:" << child.name << "\nchild.type:" << toString(child.type) << "\n";
-        // auto pa = Operand(root->v, root->t);
+        auto child = symbol_table.get_operand(landexp->v);
+
         // 左节点[IR中的]
-        auto pa = root->is_computable ? Operand(root->v, root->t) : symbol_table.get_operand(root->v);
-        // std::cout << "--pa.name:" << pa.name << "\npa.type:" << toString(pa.type) << "\n";
-        Operand op1;
-        Operand op2;
+        auto pa = symbol_table.get_operand(root->v);
 
-        // 处理is_computable:出现不是立即数的直接置为false，否则保持不变
-        root->is_computable = landexp->is_computable ? root->is_computable : false;
-
-        // 处理t，并做类型检查
-        if (pa.type == Type::Int)
-        {
-            if (child.type == Type::Int)
-            {
-                // do nothing
-                op1 = pa;
-                op2 = child;
-                root->t = Type::Int;
-            }
-            else if (child.type == Type::IntLiteral)
-            {
-                op1 = pa;
-                // op2立即数转变量
-                op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                buffer.push_back(new Instruction(child, Operand(), op2, Operator::def));
-                root->t = Type::Int;
-            }
-            else if (child.type == Type::Float)
-            {
-                op2 = child;
-                // op1->float
-                op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(pa, Operand(), op1, Operator::cvt_i2f));
-                root->t = Type::Float;
-            }
-            else
-            {
-                assert(child.type == Type::FloatLiteral);
-                // op2立即数变变量
-                op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
-                // op1->float
-                op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(pa, Operand(), op1, Operator::cvt_i2f));
-                root->t = Type::Float;
-            }
-        }
-        else if (pa.type == Type::IntLiteral)
-        {
-            if (child.type == Type::Int)
-            {
-                // op1立即数变变量
-                op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                buffer.push_back(new Instruction(pa, Operand(), op1, Operator::def));
-                op2 = child;
-                root->t = Type::Int;
-            }
-            else if (child.type == Type::IntLiteral)
-            {
-                // // op1立即数变变量
-                // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                // buffer.push_back(new Instruction(pa, Operand(), op1, Operator::def));
-                // // op2立即数变变量
-                // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                // buffer.push_back(new Instruction(child, Operand(), op2, Operator::def));
-                op1 = pa;
-                op2 = child;
-                root->t = Type::IntLiteral;
-            }
-            else if (child.type == Type::Float)
-            {
-                // op1立即数变变量
-                auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                buffer.push_back(new Instruction(pa, Operand(), tmp, Operator::def));
-                // op1->float
-                op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(pa, Operand(), op1, Operator::cvt_i2f));
-                op2 = child;
-                root->t = Type::Float;
-            }
-            else
-            {
-                assert(child.type == Type::FloatLiteral);
-                // // op1立即数转变量
-                // auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                // buffer.push_back(new Instruction(pa, Operand(), tmp, Operator::def));
-                // // op1->float
-                // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                // buffer.push_back(new Instruction(tmp, Operand(), op1, Operator::cvt_i2f));
-                // // op2立即数转变量
-                // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                // buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
-                op1 = pa;
-                op2 = child;
-                root->t = Type::FloatLiteral;
-            }
-        }
-        else if (pa.type == Type::Float)
-        {
-            if (child.type == Type::Int)
-            {
-                op1 = pa;
-                // op2->float
-                op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(child, Operand(), op2, Operator::cvt_i2f));
-                root->t = Type::Float;
-            }
-            else if (child.type == Type::IntLiteral)
-            {
-                op1 = pa;
-                // op2立即数转变量
-                auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                buffer.push_back(new Instruction(child, Operand(), tmp, Operator::def));
-                // op2->float
-                op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(tmp, Operand(), op2, Operator::cvt_i2f));
-                root->t = Type::Float;
-            }
-            else if (child.type == Type::Float)
-            {
-                // do nothing
-                op1 = pa;
-                op2 = child;
-                root->t = Type::Float;
-            }
-            else
-            {
-                assert(child.type == Type::FloatLiteral);
-                op1 = pa;
-                // op2立即数转变量
-                op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
-                root->t = Type::Float;
-            }
-        }
-        else
-        {
-            assert(pa.type == Type::FloatLiteral);
-            if (child.type == Type::Int)
-            {
-                // op1立即数转变量
-                op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
-                // op2->float
-                op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(child, Operand(), op2, Operator::cvt_i2f));
-                root->t = Type::Float;
-            }
-            else if (child.type == Type::IntLiteral)
-            {
-                // // op1立即数转变量
-                // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                // buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
-                // // op2立即数转变量
-                // auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                // buffer.push_back(new Instruction(child, Operand(), tmp, Operator::def));
-                // // op2->float
-                // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                // buffer.push_back(new Instruction(tmp, Operand(), op2, Operator::cvt_i2f));
-                op1 = pa;
-                op2 = child;
-                root->t = Type::FloatLiteral;
-            }
-            else if (child.type == Type::Float)
-            {
-                // op1立即数转变量
-                op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
-                op2 = child;
-                root->t = Type::Float;
-            }
-            else
-            {
-                assert(child.type == Type::FloatLiteral);
-                // // op1立即数转变量
-                // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                // buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
-                // // op2立即数转变量
-                // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                // buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
-                op1 = pa;
-                op2 = child;
-                root->t = Type::FloatLiteral;
-            }
-        }
-        result.type = root->t;
+        root->is_computable = false;
 
         // 处理操作符,并赋值
-        if (optp == TokenType::AND)
-        {
-            if (root->t == Type::Int)
-            {
-                buffer.push_back(new Instruction(op1, op2, result, Operator::_and));
-                // 加入符号表
-                symbol_table.scope_stack.back().table.insert({result.name, {result}});
-                root->v = result.name;
-                root->t = Type::Int;
-            }
-            else if (root->t == Type::Float)
-            {
-                buffer.push_back(new Instruction(op1, op2, result, Operator::_and));
-                // 加入符号表
-                symbol_table.scope_stack.back().table.insert({result.name, {result}});
-                root->v = result.name;
-                root->t = Type::Int;
-            }
-            else if (root->t == Type::IntLiteral)
-            {
-                // 直接计算
-                root->v = stoi(op1.name) && stoi(op2.name) ? "1" : "0";
-                root->t = Type::IntLiteral;
-            }
-            else
-            {
-                assert(root->t == Type::FloatLiteral);
-                root->v = stof(op1.name) && stof(op2.name) ? "1" : "0";
-                root->t = Type::IntLiteral;
-            }
-        }
+        buffer.push_back(new Instruction(pa, child, result, Operator::_and));
+        symbol_table.scope_stack.back().table.insert({result.name, {result}});
+        root->v = result.name;
+        root->t = result.type;
     }
 }
 
@@ -3026,239 +2880,31 @@ void frontend::Analyzer::analysisLOrExp(LOrExp *root, vector<ir::Instruction *> 
         LOrExp.t
     */
     ANALYSIS(landexp, LAndExp, 0);
+    // eqexp已将结果全部过滤为int变量
+    assert(landexp->t == Type::Int);
     COPY_EXP_NODE(landexp, root);
     if (root->children.size() != 1)
     {
         // LOrExp -> LAndExp '||' LOrExp
         // 待写入IR的lorexp结果
-        Operand result;
-        result.name = "t" + std::to_string(tmp_cnt++);
-        // 获取操作类型
-        TokenType optp = dynamic_cast<Term *>(root->children[1])->token.type;
+        auto result = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+
+        // 确认操作类型
+        assert(dynamic_cast<Term *>(root->children[1])->token.type == TokenType::OR);
+
         ANALYSIS(lorexp, LOrExp, 2);
         // 右节点[IR中的]
-        auto child = lorexp->is_computable ? Operand(lorexp->v, lorexp->t) : symbol_table.get_operand(lorexp->v);
-        // std::cout << "--child.name:" << child.name << "\nchild.type:" << toString(child.type) << "\n";
-        // auto pa = Operand(root->v, root->t);
+        auto child = symbol_table.get_operand(lorexp->v);
         // 左节点[IR中的]
-        auto pa = root->is_computable ? Operand(root->v, root->t) : symbol_table.get_operand(root->v);
-        // std::cout << "--pa.name:" << pa.name << "\npa.type:" << toString(pa.type) << "\n";
-        Operand op1;
-        Operand op2;
+        auto pa = symbol_table.get_operand(root->v);
 
-        // 处理is_computable:出现不是立即数的直接置为false，否则保持不变
-        root->is_computable = lorexp->is_computable ? root->is_computable : false;
-
-        // 处理t，并做类型检查
-        if (pa.type == Type::Int)
-        {
-            if (child.type == Type::Int)
-            {
-                // do nothing
-                op1 = pa;
-                op2 = child;
-                root->t = Type::Int;
-            }
-            else if (child.type == Type::IntLiteral)
-            {
-                op1 = pa;
-                // op2立即数转变量
-                op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                buffer.push_back(new Instruction(child, Operand(), op2, Operator::def));
-                root->t = Type::Int;
-            }
-            else if (child.type == Type::Float)
-            {
-                op2 = child;
-                // op1->float
-                op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(pa, Operand(), op1, Operator::cvt_i2f));
-                root->t = Type::Float;
-            }
-            else
-            {
-                assert(child.type == Type::FloatLiteral);
-                // op2立即数变变量
-                op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
-                // op1->float
-                op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(pa, Operand(), op1, Operator::cvt_i2f));
-                root->t = Type::Float;
-            }
-        }
-        else if (pa.type == Type::IntLiteral)
-        {
-            if (child.type == Type::Int)
-            {
-                // op1立即数变变量
-                op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                buffer.push_back(new Instruction(pa, Operand(), op1, Operator::def));
-                op2 = child;
-                root->t = Type::Int;
-            }
-            else if (child.type == Type::IntLiteral)
-            {
-                // // op1立即数变变量
-                // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                // buffer.push_back(new Instruction(pa, Operand(), op1, Operator::def));
-                // // op2立即数变变量
-                // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                // buffer.push_back(new Instruction(child, Operand(), op2, Operator::def));
-                op1 = pa;
-                op2 = child;
-                root->t = Type::IntLiteral;
-            }
-            else if (child.type == Type::Float)
-            {
-                // op1立即数变变量
-                auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                buffer.push_back(new Instruction(pa, Operand(), tmp, Operator::def));
-                // op1->float
-                op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(pa, Operand(), op1, Operator::cvt_i2f));
-                op2 = child;
-                root->t = Type::Float;
-            }
-            else
-            {
-                assert(child.type == Type::FloatLiteral);
-                // // op1立即数转变量
-                // auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                // buffer.push_back(new Instruction(pa, Operand(), tmp, Operator::def));
-                // // op1->float
-                // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                // buffer.push_back(new Instruction(tmp, Operand(), op1, Operator::cvt_i2f));
-                // // op2立即数转变量
-                // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                // buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
-                op1 = pa;
-                op2 = child;
-                root->t = Type::FloatLiteral;
-            }
-        }
-        else if (pa.type == Type::Float)
-        {
-            if (child.type == Type::Int)
-            {
-                op1 = pa;
-                // op2->float
-                op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(child, Operand(), op2, Operator::cvt_i2f));
-                root->t = Type::Float;
-            }
-            else if (child.type == Type::IntLiteral)
-            {
-                op1 = pa;
-                // op2立即数转变量
-                auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                buffer.push_back(new Instruction(child, Operand(), tmp, Operator::def));
-                // op2->float
-                op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(tmp, Operand(), op2, Operator::cvt_i2f));
-                root->t = Type::Float;
-            }
-            else if (child.type == Type::Float)
-            {
-                // do nothing
-                op1 = pa;
-                op2 = child;
-                root->t = Type::Float;
-            }
-            else
-            {
-                assert(child.type == Type::FloatLiteral);
-                op1 = pa;
-                // op2立即数转变量
-                op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
-                root->t = Type::Float;
-            }
-        }
-        else
-        {
-            assert(pa.type == Type::FloatLiteral);
-            if (child.type == Type::Int)
-            {
-                // op1立即数转变量
-                op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
-                // op2->float
-                op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(child, Operand(), op2, Operator::cvt_i2f));
-                root->t = Type::Float;
-            }
-            else if (child.type == Type::IntLiteral)
-            {
-                // // op1立即数转变量
-                // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                // buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
-                // // op2立即数转变量
-                // auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                // buffer.push_back(new Instruction(child, Operand(), tmp, Operator::def));
-                // // op2->float
-                // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                // buffer.push_back(new Instruction(tmp, Operand(), op2, Operator::cvt_i2f));
-                op1 = pa;
-                op2 = child;
-                root->t = Type::FloatLiteral;
-            }
-            else if (child.type == Type::Float)
-            {
-                // op1立即数转变量
-                op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
-                op2 = child;
-                root->t = Type::Float;
-            }
-            else
-            {
-                assert(child.type == Type::FloatLiteral);
-                // // op1立即数转变量
-                // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                // buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
-                // // op2立即数转变量
-                // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                // buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
-                op1 = pa;
-                op2 = child;
-                root->t = Type::FloatLiteral;
-            }
-        }
-        result.type = root->t;
+        root->is_computable = false;
 
         // 处理操作符,并赋值
-        if (optp == TokenType::OR)
-        {
-            if (root->t == Type::Int)
-            {
-                buffer.push_back(new Instruction(op1, op2, result, Operator::_or));
-                // 加入符号表
-                symbol_table.scope_stack.back().table.insert({result.name, {result}});
-                root->v = result.name;
-                root->t = Type::Int;
-            }
-            else if (root->t == Type::Float)
-            {
-                buffer.push_back(new Instruction(op1, op2, result, Operator::_or));
-                // 加入符号表
-                symbol_table.scope_stack.back().table.insert({result.name, {result}});
-                root->v = result.name;
-                root->t = Type::Int;
-            }
-            else if (root->t == Type::IntLiteral)
-            {
-                // 直接计算
-                root->v = stoi(op1.name) && stoi(op2.name) ? "1" : "0";
-                root->t = Type::IntLiteral;
-            }
-            else
-            {
-                assert(root->t == Type::FloatLiteral);
-                root->v = stof(op1.name) && stof(op2.name) ? "1" : "0";
-                root->t = Type::IntLiteral;
-            }
-        }
+        buffer.push_back(new Instruction(pa, child, result, Operator::_or));
+        symbol_table.scope_stack.back().table.insert({result.name, {result}});
+        root->v = result.name;
+        root->t = result.type;
     }
 
     // // LOrExp -> LAndExp
