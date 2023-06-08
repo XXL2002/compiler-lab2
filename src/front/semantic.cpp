@@ -285,6 +285,9 @@ void frontend::Analyzer::analysisFuncDef(FuncDef *root, ir::Function &function)
     }
     // 退出function param作用域
     symbol_table.exit_scope();
+    if (root->t==Type::null){
+        function.addInst(new Instruction({},{},{},Operator::_return));
+    }
 }
 
 void frontend::Analyzer::analysisDecl(Decl *root, vector<ir::Instruction *> &buffer)
@@ -889,6 +892,7 @@ void frontend::Analyzer::analysisStmt(Stmt *root, vector<ir::Instruction *> &buf
         }
         else
         {
+            std::cout << "lval.t:" << toString(lval->t) << ",lval.name:" << lval->v << "\n";
             assert((lval->t == Type::IntPtr || lval->t == Type::FloatPtr));
             // 加上类型检查更好
             assert(exp->t == ((lval->t == Type::IntPtr) ? Type::Int : Type::Float));
