@@ -48,41 +48,42 @@ void frontend::SymbolTable::add_scope(Block *root)
 {
     // 唯一标识符
     int cnt = ++scope_cnt;
+
     // 作用域类型分辨符
     string name;
-    if (root->parent->type == NodeType::FUNCDEF)
-    {
-        name = "b";
-    }
-    else if (root->parent->parent->children[0]->type == NodeType::TERMINAL)
-    { // 长兄节点是TERM
-        if (dynamic_cast<Term *>(root->parent->parent->children[0])->token.type == TokenType::WHILETK)
-        { // 长兄节点是while
-            name = "w";
-        }
-        else if (dynamic_cast<Term *>(root->parent->parent->children[0])->token.type == TokenType::IFTK)
-        {                                                  // 长兄节点是if
-            if (root->parent->parent->children.size() > 5) // 判断是否有else语句
-            {
-                if (root->parent->parent->children[-1] == root->parent) // 比对末尾的stmt是否是当前block的父节点指针
-                {
-                    name = "e";
-                }
-                else
-                {
-                    name = 'i';
-                }
-            }
-            else
-            { // 无else语句
-                name = "i";
-            }
-        }
-    }
-    else
-    {
-        name = "b";
-    }
+    // if (root->parent->type == NodeType::FUNCDEF)
+    // {
+    //     name = "b";
+    // }
+    // else if (root->parent->parent->children[0]->type == NodeType::TERMINAL)
+    // { // 长兄节点是TERM
+    //     if (dynamic_cast<Term *>(root->parent->parent->children[0])->token.type == TokenType::WHILETK)
+    //     { // 长兄节点是while
+    //         name = "w";
+    //     }
+    //     else if (dynamic_cast<Term *>(root->parent->parent->children[0])->token.type == TokenType::IFTK)
+    //     {                                                  // 长兄节点是if
+    //         if (root->parent->parent->children.size() > 5) // 判断是否有else语句
+    //         {
+    //             if (root->parent->parent->children[-1] == root->parent) // 比对末尾的stmt是否是当前block的父节点指针
+    //             {
+    //                 name = "e";
+    //             }
+    //             else
+    //             {
+    //                 name = 'i';
+    //             }
+    //         }
+    //         else
+    //         { // 无else语句
+    //             name = "i";
+    //         }
+    //     }
+    // }
+    // else
+    // {
+    //     name = "b";
+    // }
     // 符号表
     map_str_ste table;
     this->scope_stack.push_back(*new ScopeInfo{cnt, name, table});
@@ -103,7 +104,7 @@ string frontend::SymbolTable::get_scoped_name(string id) const
 Operand frontend::SymbolTable::get_operand(string id) const
 {
     // 由近及远查找同名变量
-    for (int i = this->scope_stack.size(); i >= 0; i--)
+    for (int i = this->scope_stack.size()-1; i >= 0; i--)
     {
         auto it = this->scope_stack[i].table.find(id);
         if (it != this->scope_stack[i].table.end())
@@ -116,7 +117,7 @@ Operand frontend::SymbolTable::get_operand(string id) const
 frontend::STE frontend::SymbolTable::get_ste(string id) const
 {
     // 由近及远查找同名变量
-    for (int i = this->scope_stack.size(); i >= 0; i--)
+    for (int i = this->scope_stack.size()-1; i >= 0; i--)
     {
         auto it = this->scope_stack[i].table.find(id);
         if (it != this->scope_stack[i].table.end())
@@ -266,7 +267,8 @@ void frontend::Analyzer::analysisFuncDef(FuncDef *root, ir::Function &function)
 
     if (root->n == "main")
     {
-        function.addInst(new ir::CallInst({"globalFunc", Type::null}, {}));
+        Operand tmp = Operand("t" + std::to_string(tmp_cnt++), Type::null);
+        function.addInst(new ir::CallInst({"globalFunc", Type::null}, {}, tmp));
     }
     // 标记当前func
     cur_func = &function;
@@ -290,6 +292,7 @@ void frontend::Analyzer::analysisFuncDef(FuncDef *root, ir::Function &function)
     {
         function.addInst(new Instruction({}, {}, {}, Operator::_return));
     }
+    // function.draw();
 }
 
 void frontend::Analyzer::analysisDecl(Decl *root, vector<ir::Instruction *> &buffer)
@@ -544,6 +547,8 @@ void frontend::Analyzer::analysisVarDef(VarDef *root, vector<ir::Instruction *> 
         // 添加进IR,！！需要给定一个初始值，否则会报op1错误！！
         auto init = def_type == Operator::def ? Operand("0", Type::IntLiteral) : Operand("0.0", Type::FloatLiteral);
         buffer.push_back(new Instruction(init, {}, {new_name, root_type}, def_type));
+        // buffer.back()->draw();
+
         // 添加进符号表
         symbol_table.scope_stack.back().table.insert({id, {{new_name, root_type}}});
     }
@@ -612,6 +617,8 @@ void frontend::Analyzer::analysisVarDef(VarDef *root, vector<ir::Instruction *> 
             }
             // 定义变量IR
             buffer.push_back(new Instruction(operand1, Operand(), des, def_type)); // 第二个操作数不使用
+
+            // buffer.back()->draw();
             // 插入符号表项
             // symbol_table.scope_stack.back().table.insert({id, {operand1, {}}}); // map_str_ste{string:STE{Operand,dimension}}
             symbol_table.scope_stack.back().table.insert({id, {des}}); // map_str_ste{string:STE{Operand,dimension}}
@@ -1540,7 +1547,7 @@ void frontend::Analyzer::analysisFuncRParams(FuncRParams *root, vector<ir::Instr
 {
     // 函数实参表
     // FuncRParams -> Exp { ',' Exp }
-    vector<Operand> params;
+    // vector<Operand> params;
     int idx = 0, p_idx = 0;
     for (; idx < root->children.size(); idx += 2, p_idx++)
     {
@@ -1550,8 +1557,8 @@ void frontend::Analyzer::analysisFuncRParams(FuncRParams *root, vector<ir::Instr
         // 从callinst中获取当前函数的名称
         string func_name = callinst.op1.name;
         // 获取定义函数时约定的参数
-        auto p_need = symbol_table.functions[func_name]->ParameterList;
-
+        // auto p_need = symbol_table.functions[func_name]->ParameterList;
+        
         // 生成实参
         auto param = (ptp == Type::FloatLiteral || ptp == Type::IntLiteral) ? Operand(exp->v, exp->t) : symbol_table.get_operand(exp->v);
         // if (ptp == Type::IntLiteral || ptp == Type::FloatLiteral)
@@ -1564,64 +1571,65 @@ void frontend::Analyzer::analysisFuncRParams(FuncRParams *root, vector<ir::Instr
         //     param = Operand(new_name, exp->t);
         // }
         // 类型检查
-        if (ptp == p_need[p_idx].type)
-        {
-            // 类型相符
-            params.push_back(param);
-        }
-        else
-        {
-            // 不匹配
-            if (p_need[p_idx].type == Type::Int)
-            {
-                if (ptp == Type::IntLiteral)
-                {
-                    Operand tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                    buffer.push_back(new Instruction(param, Operand(), tmp, Operator::def));
-                    param = tmp;
-                }
-                else if (ptp == Type::Float)
-                {
-                    Operand tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                    buffer.push_back(new Instruction(param, Operand(), tmp, Operator::cvt_f2i));
-                    param = tmp;
-                }
-                else if (ptp == Type::FloatLiteral)
-                {
-                    Operand tmp1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                    buffer.push_back(new Instruction(param, Operand(), tmp1, Operator::fdef));
-                    Operand tmp2 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                    buffer.push_back(new Instruction(param, Operand(), tmp2, Operator::cvt_f2i));
-                    param = tmp2;
-                }
-            }
-            else if (p_need[p_idx].type == Type::Float)
-            {
-                if (ptp == Type::FloatLiteral)
-                {
-                    Operand tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                    buffer.push_back(new Instruction(param, Operand(), tmp, Operator::fdef));
-                    param = tmp;
-                }
-                else if (ptp == Type::Int)
-                {
-                    Operand tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                    buffer.push_back(new Instruction(param, Operand(), tmp, Operator::cvt_i2f));
-                    param = tmp;
-                }
-                else if (ptp == Type::IntLiteral)
-                {
-                    Operand tmp1 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-                    buffer.push_back(new Instruction(param, Operand(), tmp1, Operator::def));
-                    Operand tmp2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-                    buffer.push_back(new Instruction(param, Operand(), tmp2, Operator::cvt_i2f));
-                    param = tmp2;
-                }
-            }
-            params.push_back(param);
-        }
+        // if (ptp == p_need[p_idx].type)
+        // {
+        // 类型相符
+        std::cout<<param.name<<" "<<toString(param.type)<<std::endl;
+        callinst.argumentList.push_back(param);
+        // }
+        // else
+        // {
+        //     // 不匹配
+        //     if (p_need[p_idx].type == Type::Int)
+        //     {
+        //         if (ptp == Type::IntLiteral)
+        //         {
+        //             Operand tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+        //             buffer.push_back(new Instruction(param, Operand(), tmp, Operator::def));
+        //             param = tmp;
+        //         }
+        //         else if (ptp == Type::Float)
+        //         {
+        //             Operand tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+        //             buffer.push_back(new Instruction(param, Operand(), tmp, Operator::cvt_f2i));
+        //             param = tmp;
+        //         }
+        //         else if (ptp == Type::FloatLiteral)
+        //         {
+        //             Operand tmp1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+        //             buffer.push_back(new Instruction(param, Operand(), tmp1, Operator::fdef));
+        //             Operand tmp2 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+        //             buffer.push_back(new Instruction(param, Operand(), tmp2, Operator::cvt_f2i));
+        //             param = tmp2;
+        //         }
+        //     }
+        //     else if (p_need[p_idx].type == Type::Float)
+        //     {
+        //         if (ptp == Type::FloatLiteral)
+        //         {
+        //             Operand tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+        //             buffer.push_back(new Instruction(param, Operand(), tmp, Operator::fdef));
+        //             param = tmp;
+        //         }
+        //         else if (ptp == Type::Int)
+        //         {
+        //             Operand tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+        //             buffer.push_back(new Instruction(param, Operand(), tmp, Operator::cvt_i2f));
+        //             param = tmp;
+        //         }
+        //         else if (ptp == Type::IntLiteral)
+        //         {
+        //             Operand tmp1 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+        //             buffer.push_back(new Instruction(param, Operand(), tmp1, Operator::def));
+        //             Operand tmp2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+        //             buffer.push_back(new Instruction(param, Operand(), tmp2, Operator::cvt_i2f));
+        //             param = tmp2;
+        //         }
+        //     }
+        //     callinst.argumentList.push_back(param);
+        // }
         // std::cout << "GET Params\n";
-        callinst.argumentList = params;
+        // callinst.argumentList = params;
     }
 }
 
