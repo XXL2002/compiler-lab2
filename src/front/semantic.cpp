@@ -901,6 +901,7 @@ void frontend::Analyzer::analysisStmt(Stmt *root, vector<ir::Instruction *> &buf
         {
             // 加上类型检查更好
             assert(exp->t == Type::Float || exp->t == Type::FloatLiteral);
+            auto des = lval->is_computable ? Operand(lval->v, lval->t) : symbol_table.get_operand(lval->v);
             // if (exp->t == Type::FloatLiteral)
             // {
             //     auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
