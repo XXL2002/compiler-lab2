@@ -268,7 +268,7 @@ void frontend::Analyzer::analysisFuncDef(FuncDef *root, ir::Function &function)
         function.addInst(new ir::CallInst({"globalFunc", Type::null}, {}));
     }
     // 标记当前func
-    cur_func = function;
+    cur_func = &function;
 
     // 开辟并进入新作用域
     symbol_table.scope_stack.push_back({1, "fp", map_str_ste()}); // function param
@@ -1059,9 +1059,9 @@ void frontend::Analyzer::analysisStmt(Stmt *root, vector<ir::Instruction *> &buf
                 // auto src = Operand(exp->v, exp->t);
                 auto src = exp->is_computable ? Operand(exp->v, exp->t) : symbol_table.get_operand(exp->v);
                 // std::cout << "-----------src.name:" << src.name << " + src.type:" << toString(src.type) << "\n";
-                auto res = Operand("t" + std::to_string(tmp_cnt++), cur_func.returnType);
+                auto res = Operand("t" + std::to_string(tmp_cnt++), cur_func->returnType);
                 // 类型检查
-                if (cur_func.returnType == Type::Int)
+                if (cur_func->returnType == Type::Int)
                 {
                     if (exp->t == Type::Int)
                     {
@@ -1077,7 +1077,7 @@ void frontend::Analyzer::analysisStmt(Stmt *root, vector<ir::Instruction *> &buf
                         assert(0 && "return type not match! [expected int]");
                     }
                 }
-                else if (cur_func.returnType == Type::Float)
+                else if (cur_func->returnType == Type::Float)
                 {
                     if (exp->t == Type::Float)
                     {
@@ -1360,6 +1360,7 @@ void frontend::Analyzer::analysisUnaryExp(UnaryExp *root, vector<ir::Instruction
         GET_CHILD_PTR(func, Term, 0);
         string func_name = func->token.value;
         Type return_type = symbol_table.functions[func_name]->returnType;
+        std::cout << "returnType:" << toString(return_type) << "\n";
         if (root->children.size() > 3)
         {
             // 有实参
@@ -1571,6 +1572,7 @@ void frontend::Analyzer::analysisFuncRParams(FuncRParams *root, vector<ir::Instr
             }
             params.push_back(param);
         }
+        std::cout << "GET Params\n";
         callinst.argumentList = params;
     }
 }

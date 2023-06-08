@@ -110,7 +110,7 @@ namespace frontend
         vector<ir::Instruction *> g_init_inst;
         SymbolTable symbol_table;
         // 添加当前所在函数的标记，方便return时做类型检查
-        ir::Function cur_func;
+        ir::Function* cur_func;
 
         /**
          * @brief constructor

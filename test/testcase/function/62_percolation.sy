@@ -1,3 +1,4 @@
+/*
 int array[110];
 int n;
 void init(int n) {
@@ -78,5 +79,20 @@ int main() {
       putch(10);
     }
   }
+  return 0;
+}
+*/
+
+
+int func(int a){
+  if (a==0){
+    return 0;
+  }else{
+    a = func(a-1);
+    return 1;
+  }
+}
+int main(){
+  int z = 3;
   return 0;
 }
