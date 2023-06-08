@@ -50,5 +50,5 @@ add_executable(compiler main.cpp)
 target_link_libraries(compiler Tools Front IR jsoncpp)
 
 # 使用docker时取消以下两行注释
-# set(CMAKE_C_COMPILER    "/usr/bin/x86_64-linux-gnu-gcc-7")
-# set(CMAKE_CXX_COMPILER  "/usr/bin/x86_64-linux-gnu-g++-7")
+set(CMAKE_C_COMPILER    "/usr/bin/x86_64-linux-gnu-gcc-7")
+set(CMAKE_CXX_COMPILER  "/usr/bin/x86_64-linux-gnu-g++-7")
