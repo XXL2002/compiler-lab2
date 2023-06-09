@@ -1,0 +1,2 @@
+C:\PROGRA~1\MINGW-~1\X86_64~1.0-W\mingw64\bin\ar.exe qc E:\Code\Compile\lab2\bin\libIR.a CMakeFiles/IR.dir/src/ir/ir_function.cpp.obj CMakeFiles/IR.dir/src/ir/ir_instruction.cpp.obj CMakeFiles/IR.dir/src/ir/ir_operand.cpp.obj CMakeFiles/IR.dir/src/ir/ir_operator.cpp.obj CMakeFiles/IR.dir/src/ir/ir_program.cpp.obj CMakeFiles/IR.dir/src/ir/type.cpp.obj
+C:\PROGRA~1\MINGW-~1\X86_64~1.0-W\mingw64\bin\ranlib.exe E:\Code\Compile\lab2\bin\libIR.a

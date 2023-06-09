@@ -92,7 +92,9 @@ compiler_EXTERNAL_OBJECTS =
 
 E:/Code/Compile/lab2/bin/compiler.exe: CMakeFiles/compiler.dir/main.cpp.obj
 E:/Code/Compile/lab2/bin/compiler.exe: CMakeFiles/compiler.dir/build.make
+E:/Code/Compile/lab2/bin/compiler.exe: E:/Code/Compile/lab2/bin/libTools.a
 E:/Code/Compile/lab2/bin/compiler.exe: E:/Code/Compile/lab2/bin/libFront.a
+E:/Code/Compile/lab2/bin/compiler.exe: E:/Code/Compile/lab2/bin/libIR.a
 E:/Code/Compile/lab2/bin/compiler.exe: E:/Code/Compile/lab2/bin/libjsoncpp.a
 E:/Code/Compile/lab2/bin/compiler.exe: CMakeFiles/compiler.dir/linkLibs.rsp
 E:/Code/Compile/lab2/bin/compiler.exe: CMakeFiles/compiler.dir/objects1.rsp

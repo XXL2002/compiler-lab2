@@ -1,0 +1,2 @@
+C:\PROGRA~1\MINGW-~1\X86_64~1.0-W\mingw64\bin\ar.exe qc E:\Code\Compile\lab2\bin\libTools.a CMakeFiles/Tools.dir/src/tools/ir_executor.cpp.obj
+C:\PROGRA~1\MINGW-~1\X86_64~1.0-W\mingw64\bin\ranlib.exe E:\Code\Compile\lab2\bin\libTools.a

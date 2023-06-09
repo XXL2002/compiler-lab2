@@ -1,5 +1,7 @@
 E:/Code/Compile/lab2/build/CMakeFiles/jsoncpp.dir
 E:/Code/Compile/lab2/build/CMakeFiles/Front.dir
+E:/Code/Compile/lab2/build/CMakeFiles/IR.dir
+E:/Code/Compile/lab2/build/CMakeFiles/Tools.dir
 E:/Code/Compile/lab2/build/CMakeFiles/compiler.dir
 E:/Code/Compile/lab2/build/CMakeFiles/edit_cache.dir
 E:/Code/Compile/lab2/build/CMakeFiles/rebuild_cache.dir
