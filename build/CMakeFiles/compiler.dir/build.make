@@ -90,7 +90,9 @@ compiler_EXTERNAL_OBJECTS =
 
 ../bin/compiler: CMakeFiles/compiler.dir/main.cpp.o
 ../bin/compiler: CMakeFiles/compiler.dir/build.make
+../bin/compiler: ../bin/libTools.a
 ../bin/compiler: ../bin/libFront.a
+../bin/compiler: ../bin/libIR.a
 ../bin/compiler: ../bin/libjsoncpp.a
 ../bin/compiler: CMakeFiles/compiler.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/coursegrader/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable ../bin/compiler"

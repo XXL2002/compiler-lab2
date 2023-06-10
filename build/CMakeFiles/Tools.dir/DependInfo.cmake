@@ -4,7 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/coursegrader/main.cpp" "/coursegrader/build/CMakeFiles/compiler.dir/main.cpp.o"
+  "/coursegrader/src/tools/ir_executor.cpp" "/coursegrader/build/CMakeFiles/Tools.dir/src/tools/ir_executor.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 
@@ -15,10 +15,6 @@ set(CMAKE_CXX_TARGET_INCLUDE_PATH
 
 # Targets to which this target links.
 set(CMAKE_TARGET_LINKED_INFO_FILES
-  "/coursegrader/build/CMakeFiles/Tools.dir/DependInfo.cmake"
-  "/coursegrader/build/CMakeFiles/Front.dir/DependInfo.cmake"
-  "/coursegrader/build/CMakeFiles/IR.dir/DependInfo.cmake"
-  "/coursegrader/build/CMakeFiles/jsoncpp.dir/DependInfo.cmake"
   )
 
 # Fortran module output directory.

@@ -114,7 +114,9 @@ set(CMAKE_MAKEFILE_PRODUCTS
 
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
-  "CMakeFiles/compiler.dir/DependInfo.cmake"
-  "CMakeFiles/jsoncpp.dir/DependInfo.cmake"
   "CMakeFiles/Front.dir/DependInfo.cmake"
+  "CMakeFiles/jsoncpp.dir/DependInfo.cmake"
+  "CMakeFiles/compiler.dir/DependInfo.cmake"
+  "CMakeFiles/IR.dir/DependInfo.cmake"
+  "CMakeFiles/Tools.dir/DependInfo.cmake"
   )

@@ -267,7 +267,7 @@ void frontend::Analyzer::analysisFuncDef(FuncDef *root, ir::Function &function)
 
     if (root->n == "main")
     {
-        Operand tmp = Operand("t" + std::to_string(tmp_cnt++), Type::null);
+        Operand tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::null);
         function.addInst(new ir::CallInst({"globalFunc", Type::null}, {}, tmp));
     }
     // 标记当前func
@@ -582,7 +582,7 @@ void frontend::Analyzer::analysisVarDef(VarDef *root, vector<ir::Instruction *> 
                 if (initval->t == Type::Int)
                 {
                     // int -> float类型转换临时变量
-                    auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     // 需要类型转换IR
                     buffer.push_back(new Instruction(operand1, {}, tmp, Operator::cvt_i2f));
                     operand1 = tmp;
@@ -601,7 +601,7 @@ void frontend::Analyzer::analysisVarDef(VarDef *root, vector<ir::Instruction *> 
                 {
                     // 浮点数
                     // float -> int类型转换临时变量("t1",Type::Int)
-                    auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     // 需要类型转化IR
                     buffer.push_back(new Instruction(operand1, {}, tmp, Operator::cvt_f2i));
                     // 此时operand1不再是float类型的oprand，而是int类型的tmp
@@ -890,7 +890,7 @@ void frontend::Analyzer::analysisStmt(Stmt *root, vector<ir::Instruction *> &buf
             auto des = lval->is_computable ? Operand(lval->v, lval->t) : symbol_table.get_operand(lval->v);
             // if (exp->t == Type::IntLiteral)
             // {
-            //     auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+            //     auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
             //     buffer.push_back(new Instruction(src, Operand(), tmp, Operator::def));
             //     buffer.push_back(new Instruction(tmp, Operand(), des, Operator::mov));
             // }else{
@@ -912,7 +912,7 @@ void frontend::Analyzer::analysisStmt(Stmt *root, vector<ir::Instruction *> &buf
             auto des = lval->is_computable ? Operand(lval->v, lval->t) : symbol_table.get_operand(lval->v);
             // if (exp->t == Type::FloatLiteral)
             // {
-            //     auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+            //     auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
             //     buffer.push_back(new Instruction(src, Operand(), tmp, Operator::fdef));
             //     buffer.push_back(new Instruction({lval->arr_name, Type::FloatPtr}, lval->i, src, Operator::store));
             // }
@@ -936,10 +936,10 @@ void frontend::Analyzer::analysisStmt(Stmt *root, vector<ir::Instruction *> &buf
             // 加上类型检查更好
             // TODO;
             // assert(exp->t == ((lval->t == Type::IntPtr) ? Type::Int : Type::Float));
-            // auto zero = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+            // auto zero = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
             // buffer.push_back(new Instruction({"0", Type::IntLiteral}, Operand(), zero, Operator::def));
             // buffer.push_back(new Instruction(des, zero, src, Operator::store));
-            std::cout << "arr_name:" << lval->arr_name << std::endl;
+            // std::cout << "arr_name:" << lval->arr_name << std::endl;
             buffer.push_back(new Instruction({lval->arr_name, lval->t}, lval->i, src, Operator::store));
         }
     }
@@ -965,7 +965,7 @@ void frontend::Analyzer::analysisStmt(Stmt *root, vector<ir::Instruction *> &buf
                 // Stmt -> 'if' '(' Cond ')' Stmt
                 ANALYSIS(cond, Cond, 2);
                 // 判断正确->执行stmt
-                buffer.push_back(new Instruction({cond->v, cond->t}, Operand(), {"2", Type::IntLiteral}, Operator::_goto));
+                buffer.push_back(new Instruction(symbol_table.get_operand(cond->v), Operand(), {"2", Type::IntLiteral}, Operator::_goto));
                 // 判断错误->跳过stmt
                 auto go_false = new Instruction(Operand(), Operand(), {}, Operator::_goto);
 
@@ -987,7 +987,7 @@ void frontend::Analyzer::analysisStmt(Stmt *root, vector<ir::Instruction *> &buf
                 // Stmt -> 'if' '(' Cond ')' Stmt 'else' Stmt
                 ANALYSIS(cond, Cond, 2);
                 // 判断正确->执行stmt1
-                buffer.push_back(new Instruction({cond->v, cond->t}, Operand(), {"2", Type::IntLiteral}, Operator::_goto));
+                buffer.push_back(new Instruction(symbol_table.get_operand(cond->v), Operand(), {"2", Type::IntLiteral}, Operator::_goto));
                 // 判断错误->跳过stmt1
                 auto go_false = new Instruction(Operand(), Operand(), {}, Operator::_goto);
 
@@ -1002,7 +1002,7 @@ void frontend::Analyzer::analysisStmt(Stmt *root, vector<ir::Instruction *> &buf
                 buffer.push_back(go_false);
                 buffer.insert(buffer.end(), tmp1.begin(), tmp1.end());
 
-                auto go_true = new Instruction({cond->v, cond->t}, Operand(), {}, Operator::_goto);
+                auto go_true = new Instruction(symbol_table.get_operand(cond->v), Operand(), {}, Operator::_goto);
 
                 std::vector<Instruction *> tmp2 = {};
                 auto stmt2 = dynamic_cast<Stmt *>(root->children[6]);
@@ -1026,7 +1026,7 @@ void frontend::Analyzer::analysisStmt(Stmt *root, vector<ir::Instruction *> &buf
             int after_cond = buffer.size();
             int cnt_cond = after_cond - before_cond;
             // 判断正确->执行stmt
-            buffer.push_back(new Instruction({cond->v, cond->t}, Operand(), {"2", Type::IntLiteral}, Operator::_goto));
+            buffer.push_back(new Instruction(symbol_table.get_operand(cond->v), Operand(), {"2", Type::IntLiteral}, Operator::_goto));
             // 判断错误->跳过stmt
             auto go_false = new Instruction(Operand(), Operand(), {}, Operator::_goto);
 
@@ -1105,7 +1105,7 @@ void frontend::Analyzer::analysisStmt(Stmt *root, vector<ir::Instruction *> &buf
                 // auto src = Operand(exp->v, exp->t);
                 auto src = exp->is_computable ? Operand(exp->v, exp->t) : symbol_table.get_operand(exp->v);
                 // std::cout << "-----------src.name:" << src.name << " + src.type:" << toString(src.type) << "\n";
-                auto res = Operand("t" + std::to_string(tmp_cnt++), cur_func->returnType);
+                auto res = Operand("t~" + std::to_string(tmp_cnt++), cur_func->returnType);
                 // 类型检查
                 if (cur_func->returnType == Type::Int)
                 {
@@ -1211,7 +1211,7 @@ void frontend::Analyzer::analysisLVal(LVal *root, vector<ir::Instruction *> &buf
             if (root->parent->type == NodeType::PRIMARYEXP)
             {
                 // 是右值
-                auto des = Operand("t" + std::to_string(tmp_cnt++), element_type);
+                auto des = Operand("t~" + std::to_string(tmp_cnt++), element_type);
                 buffer.push_back(new Instruction(ident, dim, des, Operator::load));
                 symbol_table.scope_stack.back().table.insert({des.name, {des}});
                 root->t = des.type;
@@ -1229,23 +1229,23 @@ void frontend::Analyzer::analysisLVal(LVal *root, vector<ir::Instruction *> &buf
         }
         else
         {
-            std::cout << ident_ste.operand.name << " : " << ident_ste.dimension.size() << std::endl;
+            // std::cout << ident_ste.operand.name << " : " << ident_ste.dimension.size() << std::endl;
             assert(ident_ste.dimension.size() == 2);
             // 二维数组，元素是intptr/floatptr
             auto element_type = ident.type;
             // 第二维size
-            auto sec_size = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+            auto sec_size = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
             // 当前所需的第一维idx
             auto fir_dim = Operand(exp->v, exp->t);
-            auto offset = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-            auto des = Operand("t" + std::to_string(tmp_cnt++), element_type);
+            auto offset = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
+            auto des = Operand("t~" + std::to_string(tmp_cnt++), element_type);
             // 获取第二维的size
             buffer.push_back(new Instruction({std::to_string(ident_ste.dimension[1]), Type::IntLiteral}, Operand(), sec_size, Operator::def));
             // 计算偏移量
             if (exp->t == Type::IntLiteral)
             {
                 // 立即数转变量
-                auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                 buffer.push_back(new Instruction(fir_dim, Operand(), tmp, Operator::def));
                 buffer.push_back(new Instruction(sec_size, tmp, offset, Operator::mul));
             }
@@ -1263,6 +1263,8 @@ void frontend::Analyzer::analysisLVal(LVal *root, vector<ir::Instruction *> &buf
     }
     else
     {
+        root->arr_name = ident.name;
+        root->is_arr_element = true;
         assert(root->children.size() == 7);
         // 简便起见，只考虑到二维数组
         // LVal -> Ident '[' Exp ']' '[' Exp ']'
@@ -1270,25 +1272,25 @@ void frontend::Analyzer::analysisLVal(LVal *root, vector<ir::Instruction *> &buf
         ANALYSIS(exp2, Exp, 5);
         auto element_type = (ident.type == Type::IntPtr) ? Type::Int : Type::Float;
         // 第二维size
-        auto sec_size = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+        auto sec_size = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
         // 当前所需的第一维idx
-        auto fir_dim = Operand(exp1->v, exp1->t);
+        auto fir_dim = exp1->is_computable ? Operand(exp1->v, exp1->t) : symbol_table.get_operand(exp1->v);;
         // 当前所需的第二维idx
-        auto sec_dim = Operand(exp2->v, exp2->t);
+        auto sec_dim = exp2->is_computable ? Operand(exp2->v, exp2->t) : symbol_table.get_operand(exp2->v);
         // 到达元素所在行的偏移量
-        auto offset1 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+        auto offset1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
         // 元素所在行内的偏移量
-        auto offset2 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+        auto offset2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
         // 总偏移量
-        auto offset = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
-        auto des = Operand("t" + std::to_string(tmp_cnt++), element_type);
+        auto offset = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
+        auto des = Operand("t~" + std::to_string(tmp_cnt++), element_type);
         // 获取第二维的size
         buffer.push_back(new Instruction({std::to_string(ident_ste.dimension[1]), Type::IntLiteral}, Operand(), sec_size, Operator::def));
         // 计算到达元素所在行的偏移量
         if (exp1->t == Type::IntLiteral)
         {
             // 立即数转变量
-            auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+            auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
             buffer.push_back(new Instruction(fir_dim, Operand(), tmp, Operator::def));
             buffer.push_back(new Instruction(sec_size, tmp, offset1, Operator::mul));
         }
@@ -1305,16 +1307,29 @@ void frontend::Analyzer::analysisLVal(LVal *root, vector<ir::Instruction *> &buf
         }
         else
         {
-            assert(exp1->t == Type::Int);
+            assert(exp2->t == Type::Int);
             offset2 = sec_dim;
         }
         // 计算总偏移量
         buffer.push_back(new Instruction(offset1, offset2, offset, Operator::add));
-        // 获取对应元素
-        buffer.push_back(new Instruction(ident, offset, des, Operator::load));
-        symbol_table.scope_stack.back().table.insert({des.name, {des}});
-        root->t = des.type;
-        root->v = des.name;
+        if (root->parent->type == NodeType::PRIMARYEXP){
+            // 是右值
+            // 获取对应元素
+            buffer.push_back(new Instruction(ident, offset, des, Operator::load));
+            symbol_table.scope_stack.back().table.insert({des.name, {des}});
+            root->t = des.type;
+            root->v = des.name;
+            root->is_computable = false; 
+        }
+        else
+        {
+            // 是左值
+            // 数组类型
+            root->t = ident.type;
+            // 数组原名
+            root->v = term->token.value;
+            root->i = offset;
+        }
     }
 }
 
@@ -1421,7 +1436,7 @@ void frontend::Analyzer::analysisUnaryExp(UnaryExp *root, vector<ir::Instruction
             // 有实参
             GET_CHILD_PTR(funcps, FuncRParams, 2);
             // 生成空callinst
-            auto des = Operand("t" + std::to_string(tmp_cnt++), return_type);
+            auto des = Operand("t~" + std::to_string(tmp_cnt++), return_type);
             auto call = new ir::CallInst({func_name, return_type}, {}, des);
             // 在FuncRParmas中处理call指令
             analysisFuncRParams(funcps, buffer, *call);
@@ -1433,7 +1448,7 @@ void frontend::Analyzer::analysisUnaryExp(UnaryExp *root, vector<ir::Instruction
         else
         {
             // 无实参
-            auto des = Operand("t" + std::to_string(tmp_cnt++), return_type);
+            auto des = Operand("t~" + std::to_string(tmp_cnt++), return_type);
             buffer.push_back(new ir::CallInst({func_name, return_type}, des));
             root->v = des.name;
             // 向符号表中添加des
@@ -1471,9 +1486,9 @@ void frontend::Analyzer::analysisUnaryExp(UnaryExp *root, vector<ir::Instruction
             }
             else if (unaryexp->t == Type::Int)
             {
-                auto zero = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                auto zero = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                 buffer.push_back(new Instruction(Operand("0", Type::IntLiteral), Operand(), zero, Operator::def));
-                auto des = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                auto des = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                 buffer.push_back(new Instruction(zero, src, des, Operator::sub));
                 root->v = des.name;
                 root->t = des.type;
@@ -1483,9 +1498,9 @@ void frontend::Analyzer::analysisUnaryExp(UnaryExp *root, vector<ir::Instruction
             }
             else if (unaryexp->t == Type::Float)
             {
-                auto zero = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                auto zero = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                 buffer.push_back(new Instruction(Operand("0", Type::FloatLiteral), Operand(), zero, Operator::fdef));
-                auto des = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                auto des = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                 buffer.push_back(new Instruction(zero, src, des, Operator::fsub));
                 root->v = des.name;
                 root->t = des.type;
@@ -1512,7 +1527,7 @@ void frontend::Analyzer::analysisUnaryExp(UnaryExp *root, vector<ir::Instruction
             }
             else if (unaryexp->t == Type::Int)
             {
-                auto des = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                auto des = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                 buffer.push_back(new Instruction(src, Operand(), des, Operator::_not));
                 root->v = des.name;
                 root->t = des.type;
@@ -1523,7 +1538,7 @@ void frontend::Analyzer::analysisUnaryExp(UnaryExp *root, vector<ir::Instruction
             else
             {
                 assert(unaryexp->t == Type::Float);
-                auto des = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                auto des = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                 buffer.push_back(new Instruction(src, Operand(), des, Operator::_not));
                 root->v = des.name;
                 root->t = des.type;
@@ -1574,7 +1589,7 @@ void frontend::Analyzer::analysisFuncRParams(FuncRParams *root, vector<ir::Instr
         // if (ptp == p_need[p_idx].type)
         // {
         // 类型相符
-        std::cout<<param.name<<" "<<toString(param.type)<<std::endl;
+        // std::cout<<param.name<<" "<<toString(param.type)<<std::endl;
         callinst.argumentList.push_back(param);
         // }
         // else
@@ -1584,21 +1599,21 @@ void frontend::Analyzer::analysisFuncRParams(FuncRParams *root, vector<ir::Instr
         //     {
         //         if (ptp == Type::IntLiteral)
         //         {
-        //             Operand tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+        //             Operand tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
         //             buffer.push_back(new Instruction(param, Operand(), tmp, Operator::def));
         //             param = tmp;
         //         }
         //         else if (ptp == Type::Float)
         //         {
-        //             Operand tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+        //             Operand tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
         //             buffer.push_back(new Instruction(param, Operand(), tmp, Operator::cvt_f2i));
         //             param = tmp;
         //         }
         //         else if (ptp == Type::FloatLiteral)
         //         {
-        //             Operand tmp1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+        //             Operand tmp1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
         //             buffer.push_back(new Instruction(param, Operand(), tmp1, Operator::fdef));
-        //             Operand tmp2 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+        //             Operand tmp2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
         //             buffer.push_back(new Instruction(param, Operand(), tmp2, Operator::cvt_f2i));
         //             param = tmp2;
         //         }
@@ -1607,21 +1622,21 @@ void frontend::Analyzer::analysisFuncRParams(FuncRParams *root, vector<ir::Instr
         //     {
         //         if (ptp == Type::FloatLiteral)
         //         {
-        //             Operand tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+        //             Operand tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
         //             buffer.push_back(new Instruction(param, Operand(), tmp, Operator::fdef));
         //             param = tmp;
         //         }
         //         else if (ptp == Type::Int)
         //         {
-        //             Operand tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+        //             Operand tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
         //             buffer.push_back(new Instruction(param, Operand(), tmp, Operator::cvt_i2f));
         //             param = tmp;
         //         }
         //         else if (ptp == Type::IntLiteral)
         //         {
-        //             Operand tmp1 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+        //             Operand tmp1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
         //             buffer.push_back(new Instruction(param, Operand(), tmp1, Operator::def));
-        //             Operand tmp2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+        //             Operand tmp2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
         //             buffer.push_back(new Instruction(param, Operand(), tmp2, Operator::cvt_i2f));
         //             param = tmp2;
         //         }
@@ -1648,7 +1663,7 @@ void frontend::Analyzer::analysisMulExp(MulExp *root, vector<ir::Instruction *> 
     {
         // 待写入IR的addexp结果
         Operand result;
-        result.name = "t" + std::to_string(tmp_cnt++);
+        result.name = "t~" + std::to_string(tmp_cnt++);
         for (int idx = 2; idx < root->children.size(); idx += 2)
         {
             // 获取操作类型
@@ -1682,7 +1697,7 @@ void frontend::Analyzer::analysisMulExp(MulExp *root, vector<ir::Instruction *> 
                 {
                     op1 = pa;
                     // op2立即数转变量
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::def));
                     root->t = Type::Int;
                 }
@@ -1690,7 +1705,7 @@ void frontend::Analyzer::analysisMulExp(MulExp *root, vector<ir::Instruction *> 
                 {
                     op2 = child;
                     // op1->float
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::cvt_i2f));
                     root->t = Type::Float;
                 }
@@ -1698,10 +1713,10 @@ void frontend::Analyzer::analysisMulExp(MulExp *root, vector<ir::Instruction *> 
                 {
                     assert(child.type == Type::FloatLiteral);
                     // op2立即数变变量
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
                     // op1->float
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::cvt_i2f));
                     root->t = Type::Float;
                 }
@@ -1711,7 +1726,7 @@ void frontend::Analyzer::analysisMulExp(MulExp *root, vector<ir::Instruction *> 
                 if (child.type == Type::Int)
                 {
                     // op1立即数变变量
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::def));
                     op2 = child;
                     root->t = Type::Int;
@@ -1719,10 +1734,10 @@ void frontend::Analyzer::analysisMulExp(MulExp *root, vector<ir::Instruction *> 
                 else if (child.type == Type::IntLiteral)
                 {
                     // // op1立即数变变量
-                    // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    // op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     // buffer.push_back(new Instruction(pa, Operand(), op1, Operator::def));
                     // // op2立即数变变量
-                    // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    // op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     // buffer.push_back(new Instruction(child, Operand(), op2, Operator::def));
                     op1 = pa;
                     op2 = child;
@@ -1731,10 +1746,10 @@ void frontend::Analyzer::analysisMulExp(MulExp *root, vector<ir::Instruction *> 
                 else if (child.type == Type::Float)
                 {
                     // op1立即数变变量
-                    auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     buffer.push_back(new Instruction(pa, Operand(), tmp, Operator::def));
                     // op1->float
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::cvt_i2f));
                     op2 = child;
                     root->t = Type::Float;
@@ -1743,13 +1758,13 @@ void frontend::Analyzer::analysisMulExp(MulExp *root, vector<ir::Instruction *> 
                 {
                     assert(child.type == Type::FloatLiteral);
                     // // op1立即数转变量
-                    // auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    // auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     // buffer.push_back(new Instruction(pa, Operand(), tmp, Operator::def));
                     // // op1->float
-                    // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    // op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     // buffer.push_back(new Instruction(tmp, Operand(), op1, Operator::cvt_i2f));
                     // // op2立即数转变量
-                    // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    // op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     // buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
                     op1 = pa;
                     op2 = child;
@@ -1762,7 +1777,7 @@ void frontend::Analyzer::analysisMulExp(MulExp *root, vector<ir::Instruction *> 
                 {
                     op1 = pa;
                     // op2->float
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::cvt_i2f));
                     root->t = Type::Float;
                 }
@@ -1770,10 +1785,10 @@ void frontend::Analyzer::analysisMulExp(MulExp *root, vector<ir::Instruction *> 
                 {
                     op1 = pa;
                     // op2立即数转变量
-                    auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     buffer.push_back(new Instruction(child, Operand(), tmp, Operator::def));
                     // op2->float
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(tmp, Operand(), op2, Operator::cvt_i2f));
                     root->t = Type::Float;
                 }
@@ -1789,7 +1804,7 @@ void frontend::Analyzer::analysisMulExp(MulExp *root, vector<ir::Instruction *> 
                     assert(child.type == Type::FloatLiteral);
                     op1 = pa;
                     // op2立即数转变量
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
                     root->t = Type::Float;
                 }
@@ -1800,23 +1815,23 @@ void frontend::Analyzer::analysisMulExp(MulExp *root, vector<ir::Instruction *> 
                 if (child.type == Type::Int)
                 {
                     // op1立即数转变量
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
                     // op2->float
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::cvt_i2f));
                     root->t = Type::Float;
                 }
                 else if (child.type == Type::IntLiteral)
                 {
                     // // op1立即数转变量
-                    // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    // op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     // buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
                     // // op2立即数转变量
-                    // auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    // auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     // buffer.push_back(new Instruction(child, Operand(), tmp, Operator::def));
                     // // op2->float
-                    // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    // op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     // buffer.push_back(new Instruction(tmp, Operand(), op2, Operator::cvt_i2f));
                     op1 = pa;
                     op2 = child;
@@ -1825,7 +1840,7 @@ void frontend::Analyzer::analysisMulExp(MulExp *root, vector<ir::Instruction *> 
                 else if (child.type == Type::Float)
                 {
                     // op1立即数转变量
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
                     op2 = child;
                     root->t = Type::Float;
@@ -1834,10 +1849,10 @@ void frontend::Analyzer::analysisMulExp(MulExp *root, vector<ir::Instruction *> 
                 {
                     assert(child.type == Type::FloatLiteral);
                     // // op1立即数转变量
-                    // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    // op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     // buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
                     // // op2立即数转变量
-                    // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    // op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     // buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
                     op1 = pa;
                     op2 = child;
@@ -1937,7 +1952,7 @@ void frontend::Analyzer::analysisAddExp(AddExp *root, vector<ir::Instruction *> 
     {
         // 待写入IR的addexp结果
         Operand result;
-        result.name = "t" + std::to_string(tmp_cnt++);
+        result.name = "t~" + std::to_string(tmp_cnt++);
         for (int idx = 2; idx < root->children.size(); idx += 2)
         {
             // 获取操作类型
@@ -1971,7 +1986,7 @@ void frontend::Analyzer::analysisAddExp(AddExp *root, vector<ir::Instruction *> 
                 {
                     op1 = pa;
                     // op2立即数转变量
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::def));
                     root->t = Type::Int;
                 }
@@ -1979,7 +1994,7 @@ void frontend::Analyzer::analysisAddExp(AddExp *root, vector<ir::Instruction *> 
                 {
                     op2 = child;
                     // op1->float
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::cvt_i2f));
                     root->t = Type::Float;
                 }
@@ -1987,10 +2002,10 @@ void frontend::Analyzer::analysisAddExp(AddExp *root, vector<ir::Instruction *> 
                 {
                     assert(child.type == Type::FloatLiteral);
                     // op2立即数变变量
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
                     // op1->float
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::cvt_i2f));
                     root->t = Type::Float;
                 }
@@ -2000,7 +2015,7 @@ void frontend::Analyzer::analysisAddExp(AddExp *root, vector<ir::Instruction *> 
                 if (child.type == Type::Int)
                 {
                     // op1立即数变变量
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::def));
                     op2 = child;
                     root->t = Type::Int;
@@ -2008,10 +2023,10 @@ void frontend::Analyzer::analysisAddExp(AddExp *root, vector<ir::Instruction *> 
                 else if (child.type == Type::IntLiteral)
                 {
                     // // op1立即数变变量
-                    // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    // op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     // buffer.push_back(new Instruction(pa, Operand(), op1, Operator::def));
                     // // op2立即数变变量
-                    // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    // op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     // buffer.push_back(new Instruction(child, Operand(), op2, Operator::def));
                     op1 = pa;
                     op2 = child;
@@ -2020,10 +2035,10 @@ void frontend::Analyzer::analysisAddExp(AddExp *root, vector<ir::Instruction *> 
                 else if (child.type == Type::Float)
                 {
                     // op1立即数变变量
-                    auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     buffer.push_back(new Instruction(pa, Operand(), tmp, Operator::def));
                     // op1->float
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::cvt_i2f));
                     op2 = child;
                     root->t = Type::Float;
@@ -2032,13 +2047,13 @@ void frontend::Analyzer::analysisAddExp(AddExp *root, vector<ir::Instruction *> 
                 {
                     assert(child.type == Type::FloatLiteral);
                     // // op1立即数转变量
-                    // auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    // auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     // buffer.push_back(new Instruction(pa, Operand(), tmp, Operator::def));
                     // // op1->float
-                    // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    // op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     // buffer.push_back(new Instruction(tmp, Operand(), op1, Operator::cvt_i2f));
                     // // op2立即数转变量
-                    // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    // op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     // buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
                     op1 = pa;
                     op2 = child;
@@ -2051,7 +2066,7 @@ void frontend::Analyzer::analysisAddExp(AddExp *root, vector<ir::Instruction *> 
                 {
                     op1 = pa;
                     // op2->float
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::cvt_i2f));
                     root->t = Type::Float;
                 }
@@ -2059,10 +2074,10 @@ void frontend::Analyzer::analysisAddExp(AddExp *root, vector<ir::Instruction *> 
                 {
                     op1 = pa;
                     // op2立即数转变量
-                    auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     buffer.push_back(new Instruction(child, Operand(), tmp, Operator::def));
                     // op2->float
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(tmp, Operand(), op2, Operator::cvt_i2f));
                     root->t = Type::Float;
                 }
@@ -2078,7 +2093,7 @@ void frontend::Analyzer::analysisAddExp(AddExp *root, vector<ir::Instruction *> 
                     assert(child.type == Type::FloatLiteral);
                     op1 = pa;
                     // op2立即数转变量
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
                     root->t = Type::Float;
                 }
@@ -2089,23 +2104,23 @@ void frontend::Analyzer::analysisAddExp(AddExp *root, vector<ir::Instruction *> 
                 if (child.type == Type::Int)
                 {
                     // op1立即数转变量
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
                     // op2->float
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::cvt_i2f));
                     root->t = Type::Float;
                 }
                 else if (child.type == Type::IntLiteral)
                 {
                     // // op1立即数转变量
-                    // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    // op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     // buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
                     // // op2立即数转变量
-                    // auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    // auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     // buffer.push_back(new Instruction(child, Operand(), tmp, Operator::def));
                     // // op2->float
-                    // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    // op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     // buffer.push_back(new Instruction(tmp, Operand(), op2, Operator::cvt_i2f));
                     op1 = pa;
                     op2 = child;
@@ -2114,7 +2129,7 @@ void frontend::Analyzer::analysisAddExp(AddExp *root, vector<ir::Instruction *> 
                 else if (child.type == Type::Float)
                 {
                     // op1立即数转变量
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
                     op2 = child;
                     root->t = Type::Float;
@@ -2123,10 +2138,10 @@ void frontend::Analyzer::analysisAddExp(AddExp *root, vector<ir::Instruction *> 
                 {
                     assert(child.type == Type::FloatLiteral);
                     // // op1立即数转变量
-                    // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    // op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     // buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
                     // // op2立即数转变量
-                    // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    // op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     // buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
                     op1 = pa;
                     op2 = child;
@@ -2212,7 +2227,7 @@ void frontend::Analyzer::analysisRelExp(RelExp *root, vector<ir::Instruction *> 
     {
         // 待写入IR的relexp结果
         Operand result;
-        result.name = "t" + std::to_string(tmp_cnt++);
+        result.name = "t~" + std::to_string(tmp_cnt++);
         for (int idx = 2; idx < root->children.size(); idx += 2)
         {
             // 获取操作类型
@@ -2246,7 +2261,7 @@ void frontend::Analyzer::analysisRelExp(RelExp *root, vector<ir::Instruction *> 
                 {
                     op1 = pa;
                     // op2立即数转变量
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::def));
                     root->t = Type::Int;
                 }
@@ -2254,7 +2269,7 @@ void frontend::Analyzer::analysisRelExp(RelExp *root, vector<ir::Instruction *> 
                 {
                     op2 = child;
                     // op1->float
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::cvt_i2f));
                     root->t = Type::Float;
                 }
@@ -2262,10 +2277,10 @@ void frontend::Analyzer::analysisRelExp(RelExp *root, vector<ir::Instruction *> 
                 {
                     assert(child.type == Type::FloatLiteral);
                     // op2立即数变变量
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
                     // op1->float
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::cvt_i2f));
                     root->t = Type::Float;
                 }
@@ -2275,7 +2290,7 @@ void frontend::Analyzer::analysisRelExp(RelExp *root, vector<ir::Instruction *> 
                 if (child.type == Type::Int)
                 {
                     // op1立即数变变量
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::def));
                     op2 = child;
                     root->t = Type::Int;
@@ -2283,10 +2298,10 @@ void frontend::Analyzer::analysisRelExp(RelExp *root, vector<ir::Instruction *> 
                 else if (child.type == Type::IntLiteral)
                 {
                     // // op1立即数变变量
-                    // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    // op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     // buffer.push_back(new Instruction(pa, Operand(), op1, Operator::def));
                     // // op2立即数变变量
-                    // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    // op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     // buffer.push_back(new Instruction(child, Operand(), op2, Operator::def));
                     op1 = pa;
                     op2 = child;
@@ -2295,10 +2310,10 @@ void frontend::Analyzer::analysisRelExp(RelExp *root, vector<ir::Instruction *> 
                 else if (child.type == Type::Float)
                 {
                     // op1立即数变变量
-                    auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     buffer.push_back(new Instruction(pa, Operand(), tmp, Operator::def));
                     // op1->float
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::cvt_i2f));
                     op2 = child;
                     root->t = Type::Float;
@@ -2307,13 +2322,13 @@ void frontend::Analyzer::analysisRelExp(RelExp *root, vector<ir::Instruction *> 
                 {
                     assert(child.type == Type::FloatLiteral);
                     // // op1立即数转变量
-                    // auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    // auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     // buffer.push_back(new Instruction(pa, Operand(), tmp, Operator::def));
                     // // op1->float
-                    // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    // op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     // buffer.push_back(new Instruction(tmp, Operand(), op1, Operator::cvt_i2f));
                     // // op2立即数转变量
-                    // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    // op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     // buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
                     op1 = pa;
                     op2 = child;
@@ -2326,7 +2341,7 @@ void frontend::Analyzer::analysisRelExp(RelExp *root, vector<ir::Instruction *> 
                 {
                     op1 = pa;
                     // op2->float
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::cvt_i2f));
                     root->t = Type::Float;
                 }
@@ -2334,10 +2349,10 @@ void frontend::Analyzer::analysisRelExp(RelExp *root, vector<ir::Instruction *> 
                 {
                     op1 = pa;
                     // op2立即数转变量
-                    auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     buffer.push_back(new Instruction(child, Operand(), tmp, Operator::def));
                     // op2->float
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(tmp, Operand(), op2, Operator::cvt_i2f));
                     root->t = Type::Float;
                 }
@@ -2353,7 +2368,7 @@ void frontend::Analyzer::analysisRelExp(RelExp *root, vector<ir::Instruction *> 
                     assert(child.type == Type::FloatLiteral);
                     op1 = pa;
                     // op2立即数转变量
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
                     root->t = Type::Float;
                 }
@@ -2364,23 +2379,23 @@ void frontend::Analyzer::analysisRelExp(RelExp *root, vector<ir::Instruction *> 
                 if (child.type == Type::Int)
                 {
                     // op1立即数转变量
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
                     // op2->float
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::cvt_i2f));
                     root->t = Type::Float;
                 }
                 else if (child.type == Type::IntLiteral)
                 {
                     // // op1立即数转变量
-                    // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    // op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     // buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
                     // // op2立即数转变量
-                    // auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    // auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     // buffer.push_back(new Instruction(child, Operand(), tmp, Operator::def));
                     // // op2->float
-                    // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    // op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     // buffer.push_back(new Instruction(tmp, Operand(), op2, Operator::cvt_i2f));
                     op1 = pa;
                     op2 = child;
@@ -2389,7 +2404,7 @@ void frontend::Analyzer::analysisRelExp(RelExp *root, vector<ir::Instruction *> 
                 else if (child.type == Type::Float)
                 {
                     // op1立即数转变量
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
                     op2 = child;
                     root->t = Type::Float;
@@ -2398,10 +2413,10 @@ void frontend::Analyzer::analysisRelExp(RelExp *root, vector<ir::Instruction *> 
                 {
                     assert(child.type == Type::FloatLiteral);
                     // // op1立即数转变量
-                    // op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    // op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     // buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
                     // // op2立即数转变量
-                    // op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    // op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     // buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
                     op1 = pa;
                     op2 = child;
@@ -2564,15 +2579,15 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
         auto src = relexp->is_computable ? Operand(relexp->v, relexp->t) : symbol_table.get_operand(relexp->v);
         if (relexp->t == Type::IntLiteral)
         {
-            auto des = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+            auto des = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
             buffer.push_back(new Instruction(src, {}, des, Operator::def));
             root->v = des.name;
             symbol_table.scope_stack.back().table.insert({des.name, {des}});
         }
         else if (relexp->t == Type::FloatLiteral)
         {
-            auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
-            auto des = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+            auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
+            auto des = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
             buffer.push_back(new Instruction(src, {}, tmp, Operator::fdef));
             buffer.push_back(new Instruction(tmp, {}, des, Operator::cvt_f2i));
             root->v = des.name;
@@ -2580,7 +2595,7 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
         }
         else if (relexp->t == Type::Float)
         {
-            auto des = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+            auto des = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
             buffer.push_back(new Instruction(src, {}, des, Operator::cvt_f2i));
             root->v = des.name;
             symbol_table.scope_stack.back().table.insert({des.name, {des}});
@@ -2596,8 +2611,8 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
         // EqExp -> RelExp { ('==' | '!=') RelExp }+
         // 待写入IR的addexp结果
         // Operand result;
-        // result.name = "t" + std::to_string(tmp_cnt++);
-        auto result = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+        // result.name = "t~" + std::to_string(tmp_cnt++);
+        auto result = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
         for (int idx = 2; idx < root->children.size(); idx += 2)
         {
             // 获取操作类型 == / !=
@@ -2631,7 +2646,7 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                     op1 = pa;
 
                     // op2立即数转变量
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::def));
 
                     common_type = Type::Int;
@@ -2639,7 +2654,7 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                 else if (child.type == Type::Float)
                 {
                     // op1->float
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::cvt_i2f));
 
                     op2 = child;
@@ -2650,11 +2665,11 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                 {
                     assert(child.type == Type::FloatLiteral);
                     // op1->float
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::cvt_i2f));
 
                     // op2立即数变变量
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
 
                     common_type = Type::Float;
@@ -2665,7 +2680,7 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                 if (child.type == Type::Int)
                 {
                     // op1立即数变变量
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::def));
 
                     op2 = child;
@@ -2683,10 +2698,10 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                 else if (child.type == Type::Float)
                 {
                     // op1立即数变变量
-                    auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     buffer.push_back(new Instruction(pa, Operand(), tmp, Operator::def));
                     // op1->float
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(tmp, Operand(), op1, Operator::cvt_i2f));
 
                     op2 = child;
@@ -2711,7 +2726,7 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                     op1 = pa;
 
                     // op2->float
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::cvt_i2f));
 
                     common_type = Type::Float;
@@ -2721,10 +2736,10 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                     op1 = pa;
 
                     // op2立即数转变量
-                    auto tmp = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+                    auto tmp = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
                     buffer.push_back(new Instruction(child, Operand(), tmp, Operator::def));
                     // op2->float
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(tmp, Operand(), op2, Operator::cvt_i2f));
 
                     common_type = Type::Float;
@@ -2744,7 +2759,7 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                     op1 = pa;
 
                     // op2立即数转变量
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::fdef));
 
                     common_type = Type::Float;
@@ -2756,11 +2771,11 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                 if (child.type == Type::Int)
                 {
                     // op1立即数转变量
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
 
                     // op2->float
-                    op2 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op2 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(child, Operand(), op2, Operator::cvt_i2f));
 
                     common_type = Type::Float;
@@ -2777,7 +2792,7 @@ void frontend::Analyzer::analysisEqExp(EqExp *root, vector<ir::Instruction *> &b
                 else if (child.type == Type::Float)
                 {
                     // op1立即数转变量
-                    op1 = Operand("t" + std::to_string(tmp_cnt++), Type::Float);
+                    op1 = Operand("t~" + std::to_string(tmp_cnt++), Type::Float);
                     buffer.push_back(new Instruction(pa, Operand(), op1, Operator::fdef));
 
                     op2 = child;
@@ -2893,7 +2908,7 @@ void frontend::Analyzer::analysisLAndExp(LAndExp *root, vector<ir::Instruction *
     {
         // LAndExp -> EqExp '&&' LAndExp
         // 待写入IR的landexp结果
-        auto result = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+        auto result = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
 
         // 确认操作类型
         assert(dynamic_cast<Term *>(root->children[1])->token.type == TokenType::AND);
@@ -2913,7 +2928,7 @@ void frontend::Analyzer::analysisLAndExp(LAndExp *root, vector<ir::Instruction *
 
         // 处理操作符,并赋值
         // if (!op1) -> des = 0
-        auto tmp_operand = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+        auto tmp_operand = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
         buffer.push_back(new Instruction(pa, {}, tmp_operand, Operator::_not));
         buffer.push_back(new Instruction(tmp_operand, {}, {std::to_string(tmp.size() + 3), Type::IntLiteral}, Operator::_goto));
         // else des = child
@@ -2945,7 +2960,7 @@ void frontend::Analyzer::analysisLOrExp(LOrExp *root, vector<ir::Instruction *> 
     {
         // LOrExp -> LAndExp '||' LOrExp
         // 待写入IR的lorexp结果
-        auto result = Operand("t" + std::to_string(tmp_cnt++), Type::Int);
+        auto result = Operand("t~" + std::to_string(tmp_cnt++), Type::Int);
 
         // 确认操作类型
         assert(dynamic_cast<Term *>(root->children[1])->token.type == TokenType::OR);

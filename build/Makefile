@@ -111,17 +111,17 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named compiler
+# Target rules for targets named Front
 
 # Build rule for target.
-compiler: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 compiler
-.PHONY : compiler
+Front: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 Front
+.PHONY : Front
 
 # fast build rule for target.
-compiler/fast:
-	$(MAKE) -f CMakeFiles/compiler.dir/build.make CMakeFiles/compiler.dir/build
-.PHONY : compiler/fast
+Front/fast:
+	$(MAKE) -f CMakeFiles/Front.dir/build.make CMakeFiles/Front.dir/build
+.PHONY : Front/fast
 
 #=============================================================================
 # Target rules for targets named jsoncpp
@@ -137,17 +137,43 @@ jsoncpp/fast:
 .PHONY : jsoncpp/fast
 
 #=============================================================================
-# Target rules for targets named Front
+# Target rules for targets named compiler
 
 # Build rule for target.
-Front: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 Front
-.PHONY : Front
+compiler: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 compiler
+.PHONY : compiler
 
 # fast build rule for target.
-Front/fast:
-	$(MAKE) -f CMakeFiles/Front.dir/build.make CMakeFiles/Front.dir/build
-.PHONY : Front/fast
+compiler/fast:
+	$(MAKE) -f CMakeFiles/compiler.dir/build.make CMakeFiles/compiler.dir/build
+.PHONY : compiler/fast
+
+#=============================================================================
+# Target rules for targets named IR
+
+# Build rule for target.
+IR: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 IR
+.PHONY : IR
+
+# fast build rule for target.
+IR/fast:
+	$(MAKE) -f CMakeFiles/IR.dir/build.make CMakeFiles/IR.dir/build
+.PHONY : IR/fast
+
+#=============================================================================
+# Target rules for targets named Tools
+
+# Build rule for target.
+Tools: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 Tools
+.PHONY : Tools
+
+# fast build rule for target.
+Tools/fast:
+	$(MAKE) -f CMakeFiles/Tools.dir/build.make CMakeFiles/Tools.dir/build
+.PHONY : Tools/fast
 
 main.o: main.cpp.o
 
@@ -311,6 +337,168 @@ src/front/token.cpp.s:
 	$(MAKE) -f CMakeFiles/Front.dir/build.make CMakeFiles/Front.dir/src/front/token.cpp.s
 .PHONY : src/front/token.cpp.s
 
+src/ir/ir_function.o: src/ir/ir_function.cpp.o
+
+.PHONY : src/ir/ir_function.o
+
+# target to build an object file
+src/ir/ir_function.cpp.o:
+	$(MAKE) -f CMakeFiles/IR.dir/build.make CMakeFiles/IR.dir/src/ir/ir_function.cpp.o
+.PHONY : src/ir/ir_function.cpp.o
+
+src/ir/ir_function.i: src/ir/ir_function.cpp.i
+
+.PHONY : src/ir/ir_function.i
+
+# target to preprocess a source file
+src/ir/ir_function.cpp.i:
+	$(MAKE) -f CMakeFiles/IR.dir/build.make CMakeFiles/IR.dir/src/ir/ir_function.cpp.i
+.PHONY : src/ir/ir_function.cpp.i
+
+src/ir/ir_function.s: src/ir/ir_function.cpp.s
+
+.PHONY : src/ir/ir_function.s
+
+# target to generate assembly for a file
+src/ir/ir_function.cpp.s:
+	$(MAKE) -f CMakeFiles/IR.dir/build.make CMakeFiles/IR.dir/src/ir/ir_function.cpp.s
+.PHONY : src/ir/ir_function.cpp.s
+
+src/ir/ir_instruction.o: src/ir/ir_instruction.cpp.o
+
+.PHONY : src/ir/ir_instruction.o
+
+# target to build an object file
+src/ir/ir_instruction.cpp.o:
+	$(MAKE) -f CMakeFiles/IR.dir/build.make CMakeFiles/IR.dir/src/ir/ir_instruction.cpp.o
+.PHONY : src/ir/ir_instruction.cpp.o
+
+src/ir/ir_instruction.i: src/ir/ir_instruction.cpp.i
+
+.PHONY : src/ir/ir_instruction.i
+
+# target to preprocess a source file
+src/ir/ir_instruction.cpp.i:
+	$(MAKE) -f CMakeFiles/IR.dir/build.make CMakeFiles/IR.dir/src/ir/ir_instruction.cpp.i
+.PHONY : src/ir/ir_instruction.cpp.i
+
+src/ir/ir_instruction.s: src/ir/ir_instruction.cpp.s
+
+.PHONY : src/ir/ir_instruction.s
+
+# target to generate assembly for a file
+src/ir/ir_instruction.cpp.s:
+	$(MAKE) -f CMakeFiles/IR.dir/build.make CMakeFiles/IR.dir/src/ir/ir_instruction.cpp.s
+.PHONY : src/ir/ir_instruction.cpp.s
+
+src/ir/ir_operand.o: src/ir/ir_operand.cpp.o
+
+.PHONY : src/ir/ir_operand.o
+
+# target to build an object file
+src/ir/ir_operand.cpp.o:
+	$(MAKE) -f CMakeFiles/IR.dir/build.make CMakeFiles/IR.dir/src/ir/ir_operand.cpp.o
+.PHONY : src/ir/ir_operand.cpp.o
+
+src/ir/ir_operand.i: src/ir/ir_operand.cpp.i
+
+.PHONY : src/ir/ir_operand.i
+
+# target to preprocess a source file
+src/ir/ir_operand.cpp.i:
+	$(MAKE) -f CMakeFiles/IR.dir/build.make CMakeFiles/IR.dir/src/ir/ir_operand.cpp.i
+.PHONY : src/ir/ir_operand.cpp.i
+
+src/ir/ir_operand.s: src/ir/ir_operand.cpp.s
+
+.PHONY : src/ir/ir_operand.s
+
+# target to generate assembly for a file
+src/ir/ir_operand.cpp.s:
+	$(MAKE) -f CMakeFiles/IR.dir/build.make CMakeFiles/IR.dir/src/ir/ir_operand.cpp.s
+.PHONY : src/ir/ir_operand.cpp.s
+
+src/ir/ir_operator.o: src/ir/ir_operator.cpp.o
+
+.PHONY : src/ir/ir_operator.o
+
+# target to build an object file
+src/ir/ir_operator.cpp.o:
+	$(MAKE) -f CMakeFiles/IR.dir/build.make CMakeFiles/IR.dir/src/ir/ir_operator.cpp.o
+.PHONY : src/ir/ir_operator.cpp.o
+
+src/ir/ir_operator.i: src/ir/ir_operator.cpp.i
+
+.PHONY : src/ir/ir_operator.i
+
+# target to preprocess a source file
+src/ir/ir_operator.cpp.i:
+	$(MAKE) -f CMakeFiles/IR.dir/build.make CMakeFiles/IR.dir/src/ir/ir_operator.cpp.i
+.PHONY : src/ir/ir_operator.cpp.i
+
+src/ir/ir_operator.s: src/ir/ir_operator.cpp.s
+
+.PHONY : src/ir/ir_operator.s
+
+# target to generate assembly for a file
+src/ir/ir_operator.cpp.s:
+	$(MAKE) -f CMakeFiles/IR.dir/build.make CMakeFiles/IR.dir/src/ir/ir_operator.cpp.s
+.PHONY : src/ir/ir_operator.cpp.s
+
+src/ir/ir_program.o: src/ir/ir_program.cpp.o
+
+.PHONY : src/ir/ir_program.o
+
+# target to build an object file
+src/ir/ir_program.cpp.o:
+	$(MAKE) -f CMakeFiles/IR.dir/build.make CMakeFiles/IR.dir/src/ir/ir_program.cpp.o
+.PHONY : src/ir/ir_program.cpp.o
+
+src/ir/ir_program.i: src/ir/ir_program.cpp.i
+
+.PHONY : src/ir/ir_program.i
+
+# target to preprocess a source file
+src/ir/ir_program.cpp.i:
+	$(MAKE) -f CMakeFiles/IR.dir/build.make CMakeFiles/IR.dir/src/ir/ir_program.cpp.i
+.PHONY : src/ir/ir_program.cpp.i
+
+src/ir/ir_program.s: src/ir/ir_program.cpp.s
+
+.PHONY : src/ir/ir_program.s
+
+# target to generate assembly for a file
+src/ir/ir_program.cpp.s:
+	$(MAKE) -f CMakeFiles/IR.dir/build.make CMakeFiles/IR.dir/src/ir/ir_program.cpp.s
+.PHONY : src/ir/ir_program.cpp.s
+
+src/ir/type.o: src/ir/type.cpp.o
+
+.PHONY : src/ir/type.o
+
+# target to build an object file
+src/ir/type.cpp.o:
+	$(MAKE) -f CMakeFiles/IR.dir/build.make CMakeFiles/IR.dir/src/ir/type.cpp.o
+.PHONY : src/ir/type.cpp.o
+
+src/ir/type.i: src/ir/type.cpp.i
+
+.PHONY : src/ir/type.i
+
+# target to preprocess a source file
+src/ir/type.cpp.i:
+	$(MAKE) -f CMakeFiles/IR.dir/build.make CMakeFiles/IR.dir/src/ir/type.cpp.i
+.PHONY : src/ir/type.cpp.i
+
+src/ir/type.s: src/ir/type.cpp.s
+
+.PHONY : src/ir/type.s
+
+# target to generate assembly for a file
+src/ir/type.cpp.s:
+	$(MAKE) -f CMakeFiles/IR.dir/build.make CMakeFiles/IR.dir/src/ir/type.cpp.s
+.PHONY : src/ir/type.cpp.s
+
 src/third_party/jsoncpp/jsoncpp.o: src/third_party/jsoncpp/jsoncpp.cpp.o
 
 .PHONY : src/third_party/jsoncpp/jsoncpp.o
@@ -338,6 +526,33 @@ src/third_party/jsoncpp/jsoncpp.cpp.s:
 	$(MAKE) -f CMakeFiles/jsoncpp.dir/build.make CMakeFiles/jsoncpp.dir/src/third_party/jsoncpp/jsoncpp.cpp.s
 .PHONY : src/third_party/jsoncpp/jsoncpp.cpp.s
 
+src/tools/ir_executor.o: src/tools/ir_executor.cpp.o
+
+.PHONY : src/tools/ir_executor.o
+
+# target to build an object file
+src/tools/ir_executor.cpp.o:
+	$(MAKE) -f CMakeFiles/Tools.dir/build.make CMakeFiles/Tools.dir/src/tools/ir_executor.cpp.o
+.PHONY : src/tools/ir_executor.cpp.o
+
+src/tools/ir_executor.i: src/tools/ir_executor.cpp.i
+
+.PHONY : src/tools/ir_executor.i
+
+# target to preprocess a source file
+src/tools/ir_executor.cpp.i:
+	$(MAKE) -f CMakeFiles/Tools.dir/build.make CMakeFiles/Tools.dir/src/tools/ir_executor.cpp.i
+.PHONY : src/tools/ir_executor.cpp.i
+
+src/tools/ir_executor.s: src/tools/ir_executor.cpp.s
+
+.PHONY : src/tools/ir_executor.s
+
+# target to generate assembly for a file
+src/tools/ir_executor.cpp.s:
+	$(MAKE) -f CMakeFiles/Tools.dir/build.make CMakeFiles/Tools.dir/src/tools/ir_executor.cpp.s
+.PHONY : src/tools/ir_executor.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -345,10 +560,12 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... rebuild_cache"
-	@echo "... edit_cache"
-	@echo "... compiler"
-	@echo "... jsoncpp"
 	@echo "... Front"
+	@echo "... jsoncpp"
+	@echo "... compiler"
+	@echo "... edit_cache"
+	@echo "... IR"
+	@echo "... Tools"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
@@ -367,9 +584,30 @@ help:
 	@echo "... src/front/token.o"
 	@echo "... src/front/token.i"
 	@echo "... src/front/token.s"
+	@echo "... src/ir/ir_function.o"
+	@echo "... src/ir/ir_function.i"
+	@echo "... src/ir/ir_function.s"
+	@echo "... src/ir/ir_instruction.o"
+	@echo "... src/ir/ir_instruction.i"
+	@echo "... src/ir/ir_instruction.s"
+	@echo "... src/ir/ir_operand.o"
+	@echo "... src/ir/ir_operand.i"
+	@echo "... src/ir/ir_operand.s"
+	@echo "... src/ir/ir_operator.o"
+	@echo "... src/ir/ir_operator.i"
+	@echo "... src/ir/ir_operator.s"
+	@echo "... src/ir/ir_program.o"
+	@echo "... src/ir/ir_program.i"
+	@echo "... src/ir/ir_program.s"
+	@echo "... src/ir/type.o"
+	@echo "... src/ir/type.i"
+	@echo "... src/ir/type.s"
 	@echo "... src/third_party/jsoncpp/jsoncpp.o"
 	@echo "... src/third_party/jsoncpp/jsoncpp.i"
 	@echo "... src/third_party/jsoncpp/jsoncpp.s"
+	@echo "... src/tools/ir_executor.o"
+	@echo "... src/tools/ir_executor.i"
+	@echo "... src/tools/ir_executor.s"
 .PHONY : help
 
 
