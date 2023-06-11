@@ -646,6 +646,11 @@ void frontend::Analyzer::analysisVarDef(VarDef *root, vector<ir::Instruction *> 
                 buffer.push_back(alloc);
                 // 添加至符号表，包括维度向量
                 auto dim = new std::vector<int>;
+                for (int i = 0;i<stoi(c1.name);i++){
+                    // 添加进IR,！！需要给定一个初始值，否则会出现段错误！！
+                    auto init = root_type == Type::IntPtr ? Operand("0", Type::IntLiteral) : Operand("0.0", Type::FloatLiteral);
+                    buffer.push_back(new Instruction(arr, {std::to_string(i),Type::IntLiteral},init, Operator::store));
+                }
                 dim->push_back(std::stoi(c1.name));
                 symbol_table.scope_stack.back().table.insert({id, {arr, *dim}});
             }
@@ -685,6 +690,11 @@ void frontend::Analyzer::analysisVarDef(VarDef *root, vector<ir::Instruction *> 
                 // IR数组声明
                 auto alloc = new Instruction(len, {}, arr, Operator::alloc);
                 buffer.push_back(alloc);
+                for (int i = 0;i<stoi(len.name);i++){
+                    // 添加进IR,！！需要给定一个初始值，否则会出现段错误！！
+                    auto init = root_type == Type::IntPtr ? Operand("0", Type::IntLiteral) : Operand("0.0", Type::FloatLiteral);
+                    buffer.push_back(new Instruction(arr, {std::to_string(i),Type::IntLiteral},init, Operator::store));
+                }
                 // 添加至符号表，包括维度向量
                 auto dim = new std::vector<int>;
                 dim->push_back(std::stoi(c1.name));
